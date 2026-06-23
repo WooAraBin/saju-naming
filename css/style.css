@@ -58,6 +58,7 @@ button.primary:hover { background: #75502c; }
 .pillar { text-align: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; min-width: 64px; }
 .pillar .ko { font-size: 11px; color: #a39a8c; }
 .pillar .gz { font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+.pillar .ss { font-size: 10px; color: #b08d57; font-weight: 600; line-height: 1.4; }
 .wxdist { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
 .wx-chip { padding: 4px 10px; border-radius: 20px; font-size: 13px; background: #f0ebe1; }
 .wx-chip b { color: var(--accent); }

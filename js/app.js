@@ -65,16 +65,46 @@ async function loadDictionary() {
 /* ---------- 사주 표시 ---------- */
 function renderSaju(saju) {
   const KO = { year: '연주', month: '월주', day: '일주', time: '시주' };
-  $('pillars').innerHTML = ['year', 'month', 'day', 'time']
-    .map((p) => `<div class="pillar"><div class="ko">${KO[p]}</div><div class="gz">${saju.pillars[p]}</div></div>`)
-    .join('');
+  const sip = (saju.sip && saju.sip.pillars) || {};
+  $('pillars').innerHTML = ['year', 'month', 'day', 'time'].map((p) => {
+    const s = sip[p] || {};
+    return `<div class="pillar"><div class="ko">${KO[p]}</div>` +
+      `<div class="ss">${s.gan || ''}</div><div class="gz">${saju.pillars[p]}</div><div class="ss">${s.zhi || ''}</div></div>`;
+  }).join('');
   $('wxdist').innerHTML = window.Saju.WX_KO
-    .map((o) => `<span class="wx-chip">${o} <b>${saju.count[o]}</b></span>`)
-    .join('');
+    .map((o) => `<span class="wx-chip">${o} <b>${saju.count[o]}</b></span>`).join('');
+  const gc = (saju.sip && saju.sip.groupCount) || {};
+  const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k} ${gc[k]}`).join(' · ');
+  const dw = saju.daewoon, sw = saju.sewoon;
   $('yongsin-text').innerHTML =
-    `${saju.reason}<br>→ <b>이름에 보충 권장 오행: ${saju.target.join(', ')}</b>` +
-    (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분 적용 (실제 적용 시각 ${saju.solarStr})</span>` : '');
+    `<b>일간 ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'}</b><br>` +
+    `${saju.reason}<br>→ <b>이름에 보충 권장 오행: ${saju.target.join(', ')}</b><br>` +
+    (sipStr ? `<span class="muted">십신 분포: ${sipStr}</span><br>` : '') +
+    (dw ? `<span class="muted">현재 대운: ${dw.ganzhi} (${dw.sipsin}, ${dw.startAge}세~)</span><br>` : '') +
+    (sw ? `<span class="muted">올해(${sw.year}) 세운: ${sw.ganzhi} (${sw.sipsin})</span>` : '') +
+    (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분</span>` : '');
   $('saju-card').classList.remove('hidden');
+}
+async function explainSaju(saju) {
+  const el = $('saju-ai'); if (!el) return;
+  el.textContent = '🔮 사주 해설 생성 중...';
+  const gc = (saju.sip && saju.sip.groupCount) || {};
+  const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k}${gc[k]}`).join(', ');
+  const dw = saju.daewoon, sw = saju.sewoon;
+  const prompt = `너는 한국 사주명리 전문가다. 아래 사주를 6~9문장으로 깊이 있게, 따뜻하게 풀어줘.
+타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤. 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.
+사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
+일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}
+오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
+십신 분포: ${sipStr}
+용신/보충오행: ${saju.target.join(', ')}
+${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
+${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
+  try {
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const j = await resp.json();
+    el.textContent = j.text ? '🔮 ' + j.text : '';
+  } catch (e) { el.textContent = ''; }
 }
 
 /* ---------- 추천 목록 ---------- */
@@ -153,8 +183,10 @@ async function analyze() {
     year: y, month: m, day: d, hour: hh, minute: mm,
     lon: parseFloat($('lon').value) || 127.0,
     applyLocalTime: $('useLocal').checked,
+    gender: $('gender').value,
   });
   renderSaju(saju);
+  explainSaju(saju);
 
   const btn = $('analyze');
   btn.disabled = true; btn.textContent = '추천 계산 중...';

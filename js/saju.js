@@ -34,6 +34,28 @@ function generatedBy(o) { return Object.keys(SAENG).find((k) => SAENG[k] === o);
 // 나를 극하는 오행(관성)
 function controlledBy(o) { return Object.keys(GEUK).find((k) => GEUK[k] === o); }
 
+// 천간 음양 (1=양, 0=음)
+const YINYANG = { 甲:1, 乙:0, 丙:1, 丁:0, 戊:1, 己:0, 庚:1, 辛:0, 壬:1, 癸:0 };
+// 지지 본기(本氣) 천간 — 십신 계산용
+const ZHI_HIDDEN = { 子:'癸', 丑:'己', 寅:'甲', 卯:'乙', 辰:'戊', 巳:'丙', 午:'丁', 未:'己', 申:'庚', 酉:'辛', 戌:'戊', 亥:'壬' };
+
+// 십신(十神): 일간 기준 대상 천간의 관계
+function sipsin(dayGan, gan) {
+  if (!gan || !GAN_WX[gan]) return '';
+  const dWx = GAN_WX[dayGan], gWx = GAN_WX[gan];
+  const same = (YINYANG[dayGan] === YINYANG[gan]); // 같은 음양
+  if (gWx === dWx) return same ? '비견' : '겁재';        // 동기 = 비겁
+  if (SAENG[dWx] === gWx) return same ? '식신' : '상관';  // 내가 생 = 식상
+  if (GEUK[dWx] === gWx) return same ? '편재' : '정재';   // 내가 극 = 재성
+  if (GEUK[gWx] === dWx) return same ? '편관' : '정관';   // 나를 극 = 관성
+  if (SAENG[gWx] === dWx) return same ? '편인' : '정인';  // 나를 생 = 인성
+  return '';
+}
+const SIPSIN_GROUP = {
+  비견:'비겁', 겁재:'비겁', 식신:'식상', 상관:'식상',
+  편재:'재성', 정재:'재성', 편관:'관성', 정관:'관성', 편인:'인성', 정인:'인성',
+};
+
 /**
  * 지방시 보정량(분) 계산. 동경 135° 기준.
  * @param {number} lon 출생지 경도 (기본 서울 127.0)
@@ -48,7 +70,7 @@ function localTimeOffsetMin(lon) {
  * @returns {object} 사주 결과
  */
 function computeSaju(opt) {
-  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true } = opt;
+  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true, gender = 'M' } = opt;
 
   // 1) 지방시 보정 — 입력 시각에서 보정 분을 가감
   let adj = new Date(year, month - 1, day, hour, minute, 0);
@@ -112,7 +134,45 @@ function computeSaju(opt) {
   // 7) 최종 보충 타깃: 용신 우선, 부족오행 보조
   const target = [...new Set([...yongsin, ...lacking])];
 
+  // 8) 십신(十神) — 각 기둥 천간 + 지지 본기
+  const sip = { pillars: {}, groupCount: { 비겁:0, 식상:0, 재성:0, 관성:0, 인성:0 } };
+  ['year', 'month', 'day', 'time'].forEach((p) => {
+    const g = (p === 'day') ? '일간' : sipsin(dayGan, pillars[p][0]);
+    const z = sipsin(dayGan, ZHI_HIDDEN[pillars[p][1]]);
+    sip.pillars[p] = { gan: g, zhi: z };
+    if (p !== 'day' && SIPSIN_GROUP[g]) sip.groupCount[SIPSIN_GROUP[g]]++;
+    if (SIPSIN_GROUP[z]) sip.groupCount[SIPSIN_GROUP[z]]++;
+  });
+
+  // 9) 대운(大運) — lunar-javascript 사용
+  const gInt = (gender === 'F' || gender === 0 || gender === '여') ? 0 : 1;
+  let daewoon = null, daewoonList = [];
+  try {
+    const list = ec.getYun(gInt).getDaYun();
+    const ageNow = new Date().getFullYear() - year; // 근사(세는 나이 아님)
+    daewoonList = (list || []).map((d) => ({ startAge: d.getStartAge(), ganzhi: d.getGanZhi() }))
+      .filter((d) => d.ganzhi && d.ganzhi.length === 2);
+    for (let i = 0; i < daewoonList.length; i++) {
+      const cur = daewoonList[i], nxt = daewoonList[i + 1];
+      if (ageNow >= cur.startAge && (!nxt || ageNow < nxt.startAge)) { daewoon = cur; break; }
+    }
+    if (!daewoon && daewoonList.length) daewoon = daewoonList[0];
+    daewoonList.forEach((d) => {
+      d.gan = d.ganzhi[0]; d.zhi = d.ganzhi[1];
+      d.sipsin = sipsin(dayGan, d.gan); d.wx = { gan: GAN_WX[d.gan], zhi: ZHI_WX[d.zhi] };
+    });
+  } catch (e) {}
+
+  // 10) 세운(歲運) — 올해 간지
+  let sewoon = null;
+  try {
+    const yNow = new Date().getFullYear();
+    const gz = Solar.fromYmd(yNow, 6, 1).getLunar().getYearInGanZhi();
+    sewoon = { year: yNow, ganzhi: gz, gan: gz[0], zhi: gz[1], sipsin: sipsin(dayGan, gz[0]), wx: { gan: GAN_WX[gz[0]], zhi: ZHI_WX[gz[1]] } };
+  } catch (e) {}
+
   return {
+    sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
     offsetMin,
@@ -120,4 +180,4 @@ function computeSaju(opt) {
   };
 }
 
-window.Saju = { computeSaju, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, localTimeOffsetMin };
+window.Saju = { computeSaju, sipsin, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };
