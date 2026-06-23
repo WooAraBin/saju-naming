@@ -167,8 +167,49 @@ async function analyze() {
   renderRadar(lastResults[0]);
 }
 
+/* ---------- 내 이름 점수 (한글) ---------- */
+let mnChart = null;
+function renderMyRadar(r) {
+  $('mn-title').innerHTML = `${r.hangul} — 총점 ${r.total}`;
+  const order = AXIS_ORDER.filter((k) => r.axes[k] != null);
+  const labels = order.map((k) => AXIS_LABELS[k]);
+  const data = order.map((k) => r.axes[k]);
+  if (mnChart) mnChart.destroy();
+  mnChart = new Chart($('mnRadar'), {
+    type: 'radar',
+    data: { labels, datasets: [{ label: r.hangul, data, fill: true,
+      backgroundColor: 'rgba(139,94,52,.18)', borderColor: '#8b5e34', pointBackgroundColor: '#8b5e34' }] },
+    options: { scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }, plugins: { legend: { display: false } } },
+  });
+  $('mn-detail').innerHTML = order
+    .map((k) => `<div><span>${AXIS_LABELS[k]}</span><b>${r.axes[k]}</b></div>`).join('') +
+    `<div><span>인격/지격/외격/총격</span><b>${r.gyeok.in.num}·${r.gyeok.ji.num}·${r.gyeok.oe.num}·${r.gyeok.chong.num}</b></div>`;
+}
+async function explainAI(r) {
+  const el = $('mn-ai');
+  el.textContent = '🔮 AI 해설 생성 중...';
+  const prompt = `너는 한국 성명학 전문가다. 아래 이름 채점 결과를 보호자가 이해하기 쉽게 4~6문장으로 따뜻하게 해설해줘. 점수의 의미와 강점, 보완점을 짚되 단정적 운세는 피하고 참고용임을 전제로.\n이름: ${r.hangul}\n총점: ${r.total}\n발음오행: ${r.axes.eum}, 수리길흉: ${r.axes.sugri}, 음양조화: ${r.axes.eumyang}, 발음편의: ${r.axes.call}\n수리 4격(인지외총): ${r.gyeok.in.num}/${r.gyeok.ji.num}/${r.gyeok.oe.num}/${r.gyeok.chong.num}`;
+  try {
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const j = await resp.json();
+    if (j.text) el.textContent = '🔮 ' + j.text;
+    else el.textContent = `AI 해설을 불러오지 못했습니다.${j.note ? ' (' + j.note + ')' : ''}`;
+  } catch (e) { el.textContent = 'AI 해설 미연결 (서버 함수/GEMINI_KEY 필요)'; }
+}
+function scoreMyName() {
+  const seong = $('mnSeong').value.trim();
+  const name = $('mnName').value.trim();
+  if (!seong || !name) { alert('성과 이름을 입력하세요'); return; }
+  if (!window.HangulStroke) { alert('한글 모듈 로드 실패'); return; }
+  const r = window.Naming.scoreNameHangul(seong, name);
+  $('mnResult').classList.remove('hidden');
+  renderMyRadar(r);
+  explainAI(r);
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   $('dataStatus').textContent = '데이터 불러오는 중...';
   await loadDictionary();
   $('analyze').addEventListener('click', analyze);
+  $('mnBtn').addEventListener('click', scoreMyName);
 });

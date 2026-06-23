@@ -158,4 +158,30 @@ function suggest(saju, surname, pool, opt = {}) {
   return out;
 }
 
-window.Naming = { scoreName, suggest, WEIGHTS };
+// 한글 전용 채점 (한자 없음): 한글 자모 획수로 수리·음양, 발음 2항목. 4축 재가중.
+const WEIGHTS_HANGUL = { eum: 35, sugri: 25, eumyang: 20, call: 20 };
+function scoreNameHangul(surnameHangul, nameHangul) {
+  const HS = window.HangulStroke;
+  const sStroke = HS.syllable(surnameHangul);
+  const chars = [...nameHangul].map((h) => ({ hangul: h, strokes: HS.syllable(h) }));
+  const c0 = chars[0] ? chars[0].strokes : 0;
+  const c1 = chars[1] ? chars[1].strokes : 0;
+  const gyeok = window.Sugri.computeGyeok(sStroke, c0, c1);
+  const evalEum = window.Eum.evaluate([surnameHangul, ...chars.map((c) => c.hangul)]);
+  const axes = {
+    eum: scoreEum(evalEum),
+    sugri: scoreSugri(gyeok),
+    eumyang: scoreEumyang(sStroke, chars),
+    call: scoreCall(surnameHangul, nameHangul),
+  };
+  let raw = 0; for (const k in WEIGHTS_HANGUL) raw += axes[k] * WEIGHTS_HANGUL[k];
+  raw /= 100;
+  return {
+    hangul: surnameHangul + nameHangul, hanja: '',
+    strokes: { surname: sStroke, chars: chars.map((c) => c.strokes) },
+    axes, total: Math.round(raw), totalRaw: Math.round(raw * 100) / 100,
+    gyeok, evalEum, hangulOnly: true,
+  };
+}
+
+window.Naming = { scoreName, scoreNameHangul, suggest, WEIGHTS, WEIGHTS_HANGUL };

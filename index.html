@@ -68,6 +68,27 @@
         </div>
       </div>
     </section>
+
+    <!-- 내 이름 점수 (한글 자모 획수 기반) -->
+    <section class="card" id="myname-card">
+      <h2>📊 내 이름 점수</h2>
+      <p class="sub" style="margin:0 0 10px">한글 이름을 한글 자모 획수·발음오행으로 채점합니다 (한자 없이 가능).</p>
+      <div class="grid">
+        <label>성<input id="mnSeong" type="text" maxlength="1" placeholder="예: 김" /></label>
+        <label>이름<input id="mnName" type="text" maxlength="4" placeholder="예: 서연" /></label>
+      </div>
+      <div class="row">
+        <button id="mnBtn" class="primary">내 이름 채점</button>
+      </div>
+      <div id="mnResult" class="hidden">
+        <div class="hex-wrap">
+          <div id="mn-title" class="hex-title"></div>
+          <canvas id="mnRadar" width="320" height="320"></canvas>
+          <div id="mn-detail" class="hex-detail"></div>
+        </div>
+        <div id="mn-ai" class="yongsin" style="margin-top:12px;white-space:pre-wrap"></div>
+      </div>
+    </section>
   </main>
 
   <footer>
@@ -84,6 +105,7 @@
 
   <!-- 앱 모듈 -->
   <script src="data/hanja.js"></script>
+  <script src="js/hangul.js"></script>
   <script src="js/saju.js"></script>
   <script src="js/sugri.js"></script>
   <script src="js/eumohaeng.js"></script>
