@@ -46,8 +46,13 @@ async function loadDictionary() {
     if (!s.error && !h.error && h.data && h.data.length) {
       const surname = {};
       s.data.forEach((r) => { (surname[r.hangul] ||= []).push(r); });
-      DICT = { surname, pool: h.data };
-      $('dataStatus').textContent = `Supabase 연결됨 · 한자 ${h.data.length}자`;
+      Object.keys(localSurname).forEach((k) => { if (!surname[k]) surname[k] = localSurname[k]; });
+      // Supabase + 로컬 시드 병합 (한자 기준 중복 제거) → 후보 대폭 확장
+      const pool = h.data.slice();
+      const have = new Set(pool.map((r) => r.hanja));
+      localPool.forEach((r) => { if (!have.has(r.hanja)) { have.add(r.hanja); pool.push(r); } });
+      DICT = { surname, pool };
+      $('dataStatus').textContent = `한자 ${pool.length}자 (Supabase+로컬 병합)`;
       return;
     }
     throw new Error(s.error?.message || h.error?.message || '빈 데이터');

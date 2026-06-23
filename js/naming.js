@@ -123,12 +123,20 @@ function scoreName(saju, surname, chars) {
  * @param {object} opt {limit, excludeHyung}
  */
 function suggest(saju, surname, pool, opt = {}) {
-  const { limit = 20, excludeHyung = false, maxPerFirstChar = 3 } = opt;
+  const { limit = 20, excludeHyung = false, maxPerFirstChar = 3, maxCand = 220 } = opt;
+  // 성능: 용신/부족오행 한자로 후보 압축 후 페어링 (전쌍 채점 방지)
+  const targets = new Set([...(saju.yongsin || []), ...(saju.lacking || [])]);
+  let cand = targets.size ? pool.filter((p) => targets.has(p.wuxing)) : pool.slice();
+  if (!cand.length) cand = pool.slice();
+  if (cand.length > maxCand) {
+    const step = Math.ceil(cand.length / maxCand);
+    cand = cand.filter((_, i) => i % step === 0);
+  }
   const results = [];
-  for (let i = 0; i < pool.length; i++) {
-    for (let j = 0; j < pool.length; j++) {
-      if (pool[i].hanja === pool[j].hanja && pool[i].hangul === pool[j].hangul) continue;
-      const r = scoreName(saju, surname, [pool[i], pool[j]]);
+  for (let i = 0; i < cand.length; i++) {
+    for (let j = 0; j < cand.length; j++) {
+      if (cand[i].hanja === cand[j].hanja && cand[i].hangul === cand[j].hangul) continue;
+      const r = scoreName(saju, surname, [cand[i], cand[j]]);
       if (excludeHyung && r.gyeok.hasHyung) continue;
       results.push(r);
     }
