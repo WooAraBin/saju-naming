@@ -196,12 +196,50 @@ async function explainAI(r) {
     else el.textContent = `AI 해설을 불러오지 못했습니다.${j.note ? ' (' + j.note + ')' : ''}`;
   } catch (e) { el.textContent = 'AI 해설 미연결 (서버 함수/GEMINI_KEY 필요)'; }
 }
+function mnPopulateSeong() {
+  const seong = $('mnSeong').value.trim();
+  const arr = DICT.surname[seong] || [];
+  $('mnSeongHanja').innerHTML = '<option value="">한자 없음</option>' +
+    arr.map((a) => `<option value="${a.hanja}">${a.hanja} (${a.strokes}획·${a.wuxing})</option>`).join('');
+}
+function mnPopulateName() {
+  const name = $('mnName').value.trim();
+  $('mnNameHanjaWrap').innerHTML = [...name].map((h) => {
+    const cands = DICT.pool.filter((p) => p.hangul === h);
+    const opts = '<option value="">한자 없음</option>' +
+      cands.map((c) => `<option value="${c.hanja}">${c.hanja} (${c.strokes}획·${c.wuxing})</option>`).join('');
+    return `<label>${h} 한자<select class="mnNameHanja">${opts}</select></label>`;
+  }).join('');
+}
+function mnBirthSaju() {
+  const [y, m, d] = ($('birthdate').value || '').split('-').map(Number);
+  const [hh, mm] = ($('birthtime').value || '').split(':').map(Number);
+  if (!y) return null;
+  return window.Saju.computeSaju({ year: y, month: m, day: d, hour: hh, minute: mm,
+    lon: parseFloat($('lon').value) || 127.0, applyLocalTime: $('useLocal').checked });
+}
 function scoreMyName() {
   const seong = $('mnSeong').value.trim();
   const name = $('mnName').value.trim();
   if (!seong || !name) { alert('성과 이름을 입력하세요'); return; }
-  if (!window.HangulStroke) { alert('한글 모듈 로드 실패'); return; }
-  const r = window.Naming.scoreNameHangul(seong, name);
+  const sHanja = $('mnSeongHanja').value;
+  const nameSels = [...document.querySelectorAll('.mnNameHanja')].map((s) => s.value);
+  const chars2 = [...name];
+  const fullHanja = sHanja && chars2.length === 2 && nameSels.length === 2 && nameSels.every((v) => v);
+  let r;
+  if (fullHanja) {
+    const saju = mnBirthSaju();
+    if (!saju) { alert('한자 6항목 채점은 위 출생 정보(생년월일·시각)가 필요합니다'); return; }
+    renderSaju(saju);
+    const surnameObj = (DICT.surname[seong] || []).find((x) => x.hanja === sHanja)
+      || { hangul: seong, hanja: sHanja, strokes: 0, wuxing: '토' };
+    const chars = chars2.map((h, i) => (DICT.pool.find((p) => p.hangul === h && p.hanja === nameSels[i]))
+      || { hangul: h, hanja: nameSels[i], strokes: 0, wuxing: '토' });
+    r = window.Naming.scoreName(saju, surnameObj, chars);
+  } else {
+    if (!window.HangulStroke) { alert('한글 모듈 로드 실패'); return; }
+    r = window.Naming.scoreNameHangul(seong, name);
+  }
   $('mnResult').classList.remove('hidden');
   renderMyRadar(r);
   explainAI(r);
@@ -212,4 +250,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDictionary();
   $('analyze').addEventListener('click', analyze);
   $('mnBtn').addEventListener('click', scoreMyName);
+  $('mnSeong').addEventListener('input', mnPopulateSeong);
+  $('mnName').addEventListener('input', mnPopulateName);
 });

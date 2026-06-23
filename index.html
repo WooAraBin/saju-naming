@@ -72,11 +72,13 @@
     <!-- 내 이름 점수 (한글 자모 획수 기반) -->
     <section class="card" id="myname-card">
       <h2>📊 내 이름 점수</h2>
-      <p class="sub" style="margin:0 0 10px">한글 이름을 한글 자모 획수·발음오행으로 채점합니다 (한자 없이 가능).</p>
+      <p class="sub" style="margin:0 0 10px">한자 이름이면 <b>사주까지 반영해 6항목</b>으로, 한자가 없으면 한글 4항목으로 채점합니다. (생년월일·시각은 위 '출생 정보' 입력값 사용)</p>
       <div class="grid">
         <label>성<input id="mnSeong" type="text" maxlength="1" placeholder="예: 김" /></label>
-        <label>이름<input id="mnName" type="text" maxlength="4" placeholder="예: 서연" /></label>
+        <label>성 한자<select id="mnSeongHanja"><option value="">한자 없음</option></select></label>
+        <label>이름(한글)<input id="mnName" type="text" maxlength="4" placeholder="예: 서연" /></label>
       </div>
+      <div id="mnNameHanjaWrap" class="grid"></div>
       <div class="row">
         <button id="mnBtn" class="primary">내 이름 채점</button>
       </div>
