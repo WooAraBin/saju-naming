@@ -188,7 +188,14 @@ function renderMyRadar(r) {
 async function explainAI(r) {
   const el = $('mn-ai');
   el.textContent = '🔮 AI 해설 생성 중...';
-  const prompt = `너는 한국 성명학 전문가다. 아래 이름 채점 결과를 보호자가 이해하기 쉽게 4~6문장으로 따뜻하게 해설해줘. 점수의 의미와 강점, 보완점을 짚되 단정적 운세는 피하고 참고용임을 전제로.\n이름: ${r.hangul}\n총점: ${r.total}\n발음오행: ${r.axes.eum}, 수리길흉: ${r.axes.sugri}, 음양조화: ${r.axes.eumyang}, 발음편의: ${r.axes.call}\n수리 4격(인지외총): ${r.gyeok.in.num}/${r.gyeok.ji.num}/${r.gyeok.oe.num}/${r.gyeok.chong.num}`;
+  const axesStr = AXIS_ORDER.filter((k) => r.axes[k] != null).map((k) => `${AXIS_LABELS[k]}: ${r.axes[k]}`).join(', ');
+  const prompt = `너는 한국 성명학 전문가다. 아래는 '${r.hangul}'님이 이미 쓰고 있는 본인 이름의 채점 결과다. 본인에게 직접 말하듯 4~6문장으로 따뜻하게 해설해줘.
+[필수] '당신의 이름은~'처럼 이름의 주인 본인을 향해 말할 것. '아기·자녀·자녀분·부모님·짓다·작명' 같은 '새로 이름 짓기' 표현은 절대 쓰지 마라(이미 사용 중인 이름을 평가하는 것이다).
+점수 의미와 강점·보완점을 짚되 단정적 운세는 피하고 참고용임을 전제로.
+이름: ${r.hangul}
+총점: ${r.total}
+${axesStr}
+수리 4격(인지외총): ${r.gyeok.in.num}/${r.gyeok.ji.num}/${r.gyeok.oe.num}/${r.gyeok.chong.num}`;
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const j = await resp.json();
