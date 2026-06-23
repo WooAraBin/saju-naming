@@ -79,6 +79,14 @@
         <label>이름(한글)<input id="mnName" type="text" maxlength="4" placeholder="예: 서연" /></label>
       </div>
       <div id="mnNameHanjaWrap" class="grid"></div>
+      <div class="grid">
+        <label>생년월일 (양력)<input id="mnBirth" type="date" value="2024-01-01" /></label>
+        <label>출생 시각<input id="mnTime" type="time" value="12:00" /></label>
+        <label>출생지 경도<input id="mnLon" type="number" step="0.01" value="127.0" /></label>
+      </div>
+      <div class="row">
+        <label class="chk"><input id="mnUseLocal" type="checkbox" checked /> 지방시(진태양시) 보정</label>
+      </div>
       <div class="row">
         <button id="mnBtn" class="primary">내 이름 채점</button>
       </div>

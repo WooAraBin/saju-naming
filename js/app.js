@@ -212,11 +212,11 @@ function mnPopulateName() {
   }).join('');
 }
 function mnBirthSaju() {
-  const [y, m, d] = ($('birthdate').value || '').split('-').map(Number);
-  const [hh, mm] = ($('birthtime').value || '').split(':').map(Number);
+  const [y, m, d] = ($('mnBirth').value || '').split('-').map(Number);
+  const [hh, mm] = ($('mnTime').value || '').split(':').map(Number);
   if (!y) return null;
   return window.Saju.computeSaju({ year: y, month: m, day: d, hour: hh, minute: mm,
-    lon: parseFloat($('lon').value) || 127.0, applyLocalTime: $('useLocal').checked });
+    lon: parseFloat($('mnLon').value) || 127.0, applyLocalTime: $('mnUseLocal').checked });
 }
 function scoreMyName() {
   const seong = $('mnSeong').value.trim();
