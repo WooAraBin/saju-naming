@@ -14,6 +14,19 @@ const WEIGHTS = { saju: 25, sugri: 20, eum: 20, jawon: 15, eumyang: 10, call: 10
 const NM_SAENG = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' };
 const NM_GEUK = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' };
 
+// 두음법칙: 이름 첫 글자에 적용 (렬→열, 령→영, 려→여, 로→노, 리→이 …)
+function duum(ch) {
+  const code = ch.charCodeAt(0) - 0xac00;
+  if (code < 0 || code > 11171) return ch;
+  let cho = Math.floor(code / 588);
+  const jung = Math.floor((code % 588) / 28), jong = code % 28;
+  const yOrI = [2, 3, 6, 7, 12, 17, 20].indexOf(jung) >= 0; // ㅑㅒㅕㅖㅛㅠㅣ
+  if (cho === 5) cho = yOrI ? 11 : 2;        // ㄹ→ㅇ(i/y) / ㄴ(기타)
+  else if (cho === 2) { if (yOrI) cho = 11; } // ㄴ→ㅇ(i/y)
+  else return ch;
+  return String.fromCharCode(0xac00 + cho * 588 + jung * 28 + jong);
+}
+
 function relWx(a, b) {
   if (a === b) return '비화';
   if (NM_SAENG[a] === b) return '상생';
@@ -88,9 +101,11 @@ function scoreCall(seongHangul, nameHangul) {
  * @param {object[]} chars 이름 글자 [{hangul,hanja,strokes,wuxing}, ...] (2개)
  */
 function scoreName(saju, surname, chars) {
-  const nameHangul = chars.map((c) => c.hangul).join('');
+  const firstH = duum(chars[0].hangul); // 첫 글자 두음법칙
+  const restH = chars.slice(1).map((c) => c.hangul);
+  const nameHangul = firstH + restH.join('');
   const gyeok = window.Sugri.computeGyeok(surname.strokes, chars[0].strokes, chars[1].strokes);
-  const evalEum = window.Eum.evaluate([surname.hangul, ...chars.map((c) => c.hangul)]);
+  const evalEum = window.Eum.evaluate([surname.hangul, firstH, ...restH]);
 
   const axes = {
     saju: scoreSaju(saju, chars),
