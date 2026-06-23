@@ -1,0 +1,9 @@
+{
+  "name": "naming-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "사주 작명 - 이름 점수 분석 웹앱",
+  "dependencies": {
+    "lunar-javascript": "^1.7.7"
+  }
+}
