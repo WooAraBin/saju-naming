@@ -23,8 +23,8 @@ const CHO_WX = {
   ㅁ: '수', ㅂ: '수', ㅃ: '수', ㅍ: '수',
 };
 
-const SAENG = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' };
-const GEUK = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' };
+const EM_SAENG = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' };
+const EM_GEUK = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' };
 
 /** 한글 음절의 초성 오행 */
 function chowx(syllable) {
@@ -36,9 +36,9 @@ function chowx(syllable) {
 
 function relation(a, b) {
   if (a === b) return '비화'; // 같은 오행
-  if (SAENG[a] === b) return '상생';
-  if (GEUK[a] === b) return '상극';
-  if (SAENG[b] === a) return '역생'; // 뒤가 앞을 생 (무난)
+  if (EM_SAENG[a] === b) return '상생';
+  if (EM_GEUK[a] === b) return '상극';
+  if (EM_SAENG[b] === a) return '역생'; // 뒤가 앞을 생 (무난)
   return '역극'; // 뒤가 앞을 극 (흉)
 }
 
