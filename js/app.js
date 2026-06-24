@@ -334,24 +334,25 @@ async function analyze() {
   const btn = $('analyze');
   btn.disabled = true; btn.textContent = '후보 계산 중...';
   await new Promise((r) => setTimeout(r, 10));
-  const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 50, maxPerFirstChar: 4, excludeHyung: false });
+  const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 56, maxPerFirstChar: 4, naturalN: 42, highN: 14, excludeHyung: false });
   if (!cands.length) { btn.disabled = false; btn.textContent = '이름 추천 받기'; alert('후보를 만들지 못했습니다.'); return; }
   btn.textContent = '자연스러운 이름 고르는 중...';
-  lastResults = await selectNatural(cands);
+  lastResults = await selectNatural(cands, saju.gender);
   btn.disabled = false; btn.textContent = '이름 추천 받기';
   renderList(lastResults);
   renderRadar(lastResults[0]);
 }
 
-// 고득점 후보 → Gemini가 '강점 있는 자연스러운 이름' 선별
-async function selectNatural(cands) {
-  const list = cands.map((r, i) => `${i + 1}. ${r.hangul} ${r.hanja} 총${r.total} (사주보완 ${r.axes.saju}, 수리 ${r.axes.sugri}, 발음 ${r.axes.eum}, 자원 ${r.axes.jawon})`).join('\n');
-  const prompt = `아래는 사주에 맞는 작명 후보 ${cands.length}개(번호·한글·한자·점수)다. 한국에서 실제로 쓰는 자연스러운 이름 위주로 10개를 골라줘.
-규칙:
-- 8개: 부르기 자연스럽고 실제로 많이 쓰는 이름. 단 '무난해서'가 아니라 각자 뚜렷한 강점(발음이 좋다/수리가 길하다/사주 오행 보완이 강하다 등)이 있는 것.
-- 2개: 점수가 특히 높고 개성 있는 이름.
-- 단어처럼 어색한 조합(예: 결단, 고년, 노이)은 절대 고르지 마.
-각 선택은 번호와 한 줄 강점평. 반드시 JSON 배열로만 답해: [{"no":12,"tip":"발음 흐름이 부드럽고 수리가 길해요"}]
+// 후보 → Gemini가 '강점 있는 자연스러운 이름' 선별
+async function selectNatural(cands, gender) {
+  const g = (gender === 'F') ? '여자' : '남자';
+  const list = cands.map((r, i) => `${i + 1}. ${r.hangul} ${r.hanja} 총${r.total}${r.isNatural ? ' [자연]' : ''} (사주보완 ${r.axes.saju}, 수리 ${r.axes.sugri}, 발음 ${r.axes.eum}, 자원 ${r.axes.jawon})`).join('\n');
+  const prompt = `아래는 사주에 맞는 ${g} 작명 후보 ${cands.length}개(번호·한글·한자·총점)다. [자연] 표시는 한국에서 실제로 흔히 쓰는 부르기 좋은 이름이다.
+정확히 10개를 골라라:
+- 8개: [자연] 표시 중에서, ${g} 이름으로 자연스럽고 선호도 높은 것. 총점은 80점만 넘으면 충분하다(95점 고집하지 마라). 단 각자 뚜렷한 강점(발음이 부드럽다 / 수리가 길하다 / 부족한 오행을 잘 보완한다 등)이 있어야 한다 — '무난해서'는 강점이 아니다.
+- 2개: [자연] 아니어도 좋으니 점수가 특히 높고 개성 있는 이름.
+- 단어처럼 어색하거나(결단·고년·노이 류) ${g} 이름으로 위화감 있는 조합은 절대 고르지 마라.
+각 선택은 번호와 한 줄 강점평. 반드시 JSON 배열로만: [{"no":12,"tip":"발음이 부드럽고 수리가 길해요"}]
 후보:
 ${list}`;
   try {

@@ -179,20 +179,36 @@ function suggest(saju, surname, pool, opt = {}) {
     }
   }
   results.sort((a, b) => b.totalRaw - a.totalRaw || b.axes.saju - a.axes.saju);
-  // 같은 한글 이름 중복 제거 + 첫 글자 쏠림 방지(다양성)
+
+  // 두 음절 모두 흔한 작명 음절 = 부르기 자연스러운 이름
+  const isCommon = (h) => COMMON_SYLL.has(h) || COMMON_SYLL.has(duum(h));
+  const natural = (r) => isCommon(r.chars[0].hangul) && isCommon(r.chars[1].hangul);
+
   const seen = new Set();
   const firstCount = {};
-  const out = [];
-  for (const r of results) {
-    if (seen.has(r.hangul)) continue;
+  const take = (r) => {
+    if (seen.has(r.hangul)) return false;
     const fc = r.chars[0].hangul;
-    if ((firstCount[fc] || 0) >= maxPerFirstChar) continue;
-    seen.add(r.hangul);
-    firstCount[fc] = (firstCount[fc] || 0) + 1;
-    out.push(r);
-    if (out.length >= limit) break;
+    if ((firstCount[fc] || 0) >= maxPerFirstChar) return false;
+    seen.add(r.hangul); firstCount[fc] = (firstCount[fc] || 0) + 1;
+    r.isNatural = natural(r);
+    return true;
+  };
+
+  // 풀 1) 자연스러운 이름(둘 다 흔한 음절, 총점 80↑) — 점수순 다수
+  const naturals = [];
+  for (const r of results) {
+    if (r.total < 80 || !natural(r)) continue;
+    if (take(r)) { naturals.push(r); if (naturals.length >= (opt.naturalN || 40)) break; }
   }
-  return out;
+  // 풀 2) 고득점·개성 이름 — 자연 여부 무관 최상위
+  const highs = [];
+  for (const r of results) {
+    if (take(r)) { highs.push(r); if (highs.length >= (opt.highN || 14)) break; }
+  }
+  // 합쳐서 점수순 반환 (Gemini가 자연 8 + 고득점 2 선별)
+  const out = [...naturals, ...highs].sort((a, b) => b.totalRaw - a.totalRaw);
+  return out.slice(0, limit);
 }
 
 // 한글 전용 채점 (한자 없음): 한글 자모 획수로 수리·음양, 발음 2항목. 4축 재가중.
