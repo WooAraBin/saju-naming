@@ -7,16 +7,22 @@ module.exports = async (req, res) => {
 
   let body = '';
   await new Promise((r) => { req.on('data', (c) => (body += c)); req.on('end', r); });
-  let prompt = '';
-  try { prompt = (JSON.parse(body || '{}').prompt) || ''; } catch (e) {}
+  let prompt = '', image = null;
+  try { const b = JSON.parse(body || '{}'); prompt = b.prompt || ''; image = b.image || null; } catch (e) {}
   if (!prompt) { res.status(400).json({ error: 'no prompt' }); return; }
+
+  // 텍스트 + (선택) 이미지 — 관상 분석용 멀티모달
+  const parts = [{ text: prompt }];
+  if (image && image.data) {
+    parts.push({ inlineData: { mimeType: image.mime || 'image/jpeg', data: image.data } });
+  }
 
   try {
     const r = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: { maxOutputTokens: 8192, temperature: 0.9, thinkingConfig: { thinkingBudget: 0 } },
         }) }
     );

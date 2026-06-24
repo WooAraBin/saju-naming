@@ -212,27 +212,51 @@ async function deepAnalysis() {
   } catch (e) { el.innerHTML = '<p>오류가 발생했어요. 잠시 후 다시 시도해 주세요.</p>'; }
   btn.disabled = false;
 }
-// 🃏 사주 타로 — 가중 추출 + 사주 연계 통합 리딩
-const TAROT_POS = ['과거', '현재', '미래'];
-async function tarotReading() {
+// 📷 사주 관상 — 얼굴 사진 + 사주 멀티모달 통합 리딩
+let _gsImage = null; // {data(base64), mime}
+async function gsHandleFile(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  // 긴 변 640px로 리사이즈 → JPEG base64 (서버 미저장, 분석용 임시)
+  const dataUrl = await new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 640, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      resolve(cv.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+  _gsImage = { data: dataUrl.split(',')[1], mime: 'image/jpeg' };
+  const pv = $('gsPreview'); pv.src = dataUrl; pv.hidden = false;
+}
+async function gwansangReading() {
   const saju = window._usSaju;
   if (!saju) { alert('먼저 사주 풀이를 보세요'); return; }
-  const cards = window.Tarot.draw(saju, 3);
-  $('us-tarot').innerHTML = cards.map((c, i) => `
-    <div class="tarot-card${c.reversed ? ' rev' : ''}">
-      <div class="tc-pos">${TAROT_POS[i]}</div>
-      <div class="tc-num">${c.num}</div>
-      <div class="tc-name">${c.ko}</div>
-      <div class="tc-meta"><span class="wx-${c.wx}">${c.wx}</span>${c.reversed ? ' · <b>역방향</b>' : ' · 정방향'}</div>
-      <div class="tc-kw">${c.kw}</div>
-    </div>`).join('');
-  const el = $('us-tarot-reading'); const btn = $('usTarotBtn');
-  el.textContent = '🔮 사주 × 타로 통합 리딩 생성 중… (20~40초)';
+  if (!_gsImage) { alert('얼굴 사진을 먼저 선택하세요'); return; }
+  if (!$('gsConsent').checked) { alert('사진 사용 동의에 체크해 주세요'); return; }
+  const el = $('us-gwansang'); const btn = $('usGwansangBtn');
+  el.innerHTML = '<p>📷 사주 × 관상 분석 중… (20~40초)</p>';
   btn.disabled = true;
-  const cardLines = cards.map((c, i) => `${TAROT_POS[i]}: ${c.ko}(${c.en}) ${c.reversed ? '역방향' : '정방향'} — ${c.wx}오행, ${c.kw}`).join('\n');
   const dw = saju.daewoon, sw = saju.sewoon;
-  const prompt = `너는 사주명리와 타로를 함께 보는 상담가다. 아래 한 사람의 사주와, 그 사주의 기운으로 뽑은 타로 3장(과거·현재·미래)을 유기적으로 엮어 통합 리딩을 해줘.
-규칙: 각 카드가 이 사주의 어떤 부분(오행 과부족·십신·현재 대운/세운)과 연결되는지 짚고, 과거→현재→미래 흐름의 이야기로 풀 것. 역방향은 그 카드 의미의 지연·내면화·과잉으로 해석. 단정적 운세는 피하고 '~일 수 있어요' 톤. 8~12문장, 마지막 2~3줄은 구체적 조언.
+  const prompt = `너는 사주명리와 관상(觀相)을 함께 보는 상담가다. 첨부된 얼굴 사진과 아래 사주를 엮어 통합 관상 리딩을 해줘. 마크다운(## 제목, **굵게**, - 목록).
+
+[매우 중요 — 어조]
+- 잘생김/못생김 같은 미추(美醜) 평가는 절대 하지 마라.
+- 대신 관상학적 특징은 구체적으로 관찰해 말하라: 예) "눈썹이 짧은 편이라 ~", "미간이 좁아서 ~", "코가 곧고 콧방울이 단단해 ~", "턱이 둥글어 ~". 특징 → 그 의미 해석으로 이어가라.
+- 단정적 운세는 피하고 '~한 편이에요/~일 수 있어요' 톤. 재미·참고용임을 전제.
+
+[구성]
+## 얼굴 오행
+- 얼굴형이 목·화·토·금·수 중 어디에 가까운지, 그것이 일간 ${saju.dayGan}(${saju.dayWx})과 어떻게 어울리는지(상생/보완/충돌)
+## 삼정(三停) — 초년·중년·말년
+- 이마(초년)·코와 광대(중년)·턱(말년)의 특징을 짚고, 사주 대운 흐름과 연결
+## 오관(五官)
+- 눈썹·눈·코·입·귀 중 인상적인 부분의 특징과 의미를 사주 십신과 엮어
+## 종합
+- 사주와 관상이 일치하는 점 / 보완하는 점, 그리고 조언 2~3줄
 
 [사주]
 사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
@@ -240,15 +264,12 @@ async function tarotReading() {
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 용신/보충오행: ${saju.target.join(', ')}
 ${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
-${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}
-
-[뽑은 타로]
-${cardLines}`;
+${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
   try {
-    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, image: _gsImage }) });
     const j = await resp.json();
-    el.textContent = j.text ? '🔮 ' + j.text : '리딩을 불러오지 못했어요.';
-  } catch (e) { el.textContent = '오류가 발생했어요. 잠시 후 다시 시도해 주세요.'; }
+    el.innerHTML = j.text ? mdLite(j.text) : '<p>분석을 불러오지 못했어요.</p>';
+  } catch (e) { el.innerHTML = '<p>오류가 발생했어요. 잠시 후 다시 시도해 주세요.</p>'; }
   btn.disabled = false;
 }
 // ① 사주풀이 (메인)
@@ -490,7 +511,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDictionary();
   $('usBtn').addEventListener('click', usAnalyze);
   $('usDeepBtn').addEventListener('click', deepAnalysis);
-  $('usTarotBtn').addEventListener('click', tarotReading);
+  $('gsPhoto').addEventListener('change', gsHandleFile);
+  $('usGwansangBtn').addEventListener('click', gwansangReading);
   $('analyze').addEventListener('click', analyze);
   $('mnBtn').addEventListener('click', scoreMyName);
   $('mnSeong').addEventListener('input', mnPopulateSeong);

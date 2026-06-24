@@ -53,13 +53,19 @@
         </div>
         <div id="us-deep" class="yongsin" style="margin-top:12px;white-space:pre-wrap;line-height:1.7"></div>
 
-        <div class="tarot-sep">🃏 사주 타로 — 과거 · 현재 · 미래</div>
-        <p class="sub" style="margin:0 0 10px">사주의 기운(용신·부족·과다 오행)으로 가중해 3장을 뽑고, 사주와 엮어 풀이합니다.</p>
-        <div class="row">
-          <button id="usTarotBtn" class="primary">🃏 타로 3장 뽑기</button>
+        <div class="tarot-sep">📷 사주 관상 — 명(命)과 상(相)</div>
+        <p class="sub" style="margin:0 0 10px">얼굴 사진을 올리면 사주와 엮어 관상을 풀이합니다. 얼굴 오행·삼정(초년/중년/말년)·오관을 사주 흐름과 연결합니다.<br><b>사진은 서버에 저장하지 않고 분석 즉시 폐기</b>됩니다.</p>
+        <div class="gs-box">
+          <label class="gs-file">📁 얼굴 사진 선택
+            <input id="gsPhoto" type="file" accept="image/*" hidden />
+          </label>
+          <img id="gsPreview" class="gs-preview" hidden alt="미리보기" />
+          <label class="chk"><input type="checkbox" id="gsConsent" /> 사진을 관상 분석에 사용하는 데 동의합니다 (서버 저장 안 함)</label>
+          <div class="row">
+            <button id="usGwansangBtn" class="primary">📷 관상 분석</button>
+          </div>
         </div>
-        <div id="us-tarot" class="tarot-row"></div>
-        <div id="us-tarot-reading" class="yongsin" style="margin-top:12px;white-space:pre-wrap;line-height:1.7"></div>
+        <div id="us-gwansang" class="yongsin" style="margin-top:12px;white-space:normal;line-height:1.7"></div>
       </div>
     </section>
 
@@ -123,7 +129,6 @@
   <script src="data/hanja.js"></script>
   <script src="js/hangul.js"></script>
   <script src="js/saju.js"></script>
-  <script src="js/tarot.js"></script>
   <script src="js/sugri.js"></script>
   <script src="js/eumohaeng.js"></script>
   <script src="js/naming.js"></script>
