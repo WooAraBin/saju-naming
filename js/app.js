@@ -52,41 +52,18 @@ function scoreColor(n) {
 
 /* ---------- 데이터 로딩 ---------- */
 async function loadDictionary() {
-  // 로컬 폴백 먼저 구성
+  // 인명용 한자 8142(+이체) 내장 사전 — data/hanja.js
   const local = window.HanjaDB;
-  const localSurname = {};
+  const surname = {};
   for (const [hangul, arr] of Object.entries(local.SURNAME)) {
-    localSurname[hangul] = arr.map(([hanja, strokes, wuxing]) => ({ hangul, hanja, strokes, wuxing }));
+    surname[hangul] = arr.map(([hanja, strokes, wuxing]) => ({ hangul, hanja, strokes, wuxing }));
   }
-  const localPool = [];
+  const pool = [];
   for (const [hangul, arr] of Object.entries(local.HANJA)) {
-    arr.forEach(([hanja, strokes, wuxing]) => localPool.push({ hangul, hanja, strokes, wuxing }));
+    arr.forEach(([hanja, strokes, wuxing]) => pool.push({ hangul, hanja, strokes, wuxing }));
   }
-
-  // Supabase 시도
-  try {
-    const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-    const [s, h] = await Promise.all([
-      sb.from('naming_surname').select('hangul,hanja,strokes,wuxing'),
-      sb.from('naming_hanja').select('hangul,hanja,strokes,wuxing').limit(20000),
-    ]);
-    if (!s.error && !h.error && h.data && h.data.length) {
-      const surname = {};
-      s.data.forEach((r) => { (surname[r.hangul] ||= []).push(r); });
-      Object.keys(localSurname).forEach((k) => { if (!surname[k]) surname[k] = localSurname[k]; });
-      // Supabase + 로컬 시드 병합 (한자 기준 중복 제거) → 후보 대폭 확장
-      const pool = h.data.slice();
-      const have = new Set(pool.map((r) => r.hanja));
-      localPool.forEach((r) => { if (!have.has(r.hanja)) { have.add(r.hanja); pool.push(r); } });
-      DICT = { surname, pool };
-      $('dataStatus').textContent = `한자 ${pool.length}자 (Supabase+로컬 병합)`;
-      return;
-    }
-    throw new Error(s.error?.message || h.error?.message || '빈 데이터');
-  } catch (e) {
-    DICT = { surname: localSurname, pool: localPool };
-    $('dataStatus').textContent = `로컬 데이터 사용 중 (Supabase 미연결: ${e.message})`;
-  }
+  DICT = { surname, pool };
+  $('dataStatus').textContent = `인명용 한자 ${pool.length.toLocaleString()}자 로드됨`;
 }
 
 /* ---------- 사주 표시 ---------- */
