@@ -330,7 +330,7 @@ async function analyze() {
   const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 40, maxPerFirstChar: 3, naturalN: 28, highN: 14, excludeHyung: false });
   if (!cands.length) { btn.disabled = false; btn.textContent = '이름 추천 받기'; alert('후보를 만들지 못했습니다.'); return; }
   btn.textContent = '작명 중...';
-  lastResults = await scoreAndRank(cands, saju.gender, seong);
+  lastResults = await scoreAndRank(cands, saju.gender, seong, saju);
   btn.disabled = false; btn.textContent = '이름 추천 받기';
   renderList(lastResults);
   renderRadar(lastResults[0]);
@@ -338,37 +338,49 @@ async function analyze() {
 
 // 자연스러움 점수 가중치 (최종점수 = 명리점수*(1-W) + 자연스러움*W)
 const NATURE_W = 0.45;
+// 이 이름의 명리·성명학 강점 한 줄 (발음 계열 제외, '부족한 것을 채워준다' 위주)
+function strengthTip(r, saju) {
+  const parts = [];
+  const need = saju.target || saju.lacking || [];
+  const filled = [...new Set(r.chars.map((c) => c.wuxing).filter((w) => need.includes(w)))];
+  if (filled.length && r.axes.saju >= 70) parts.push(`사주에 부족한 ${filled.join('·')} 기운을 채워줘요`);
+  if (r.axes.sugri >= 80) parts.push('수리 4격이 길한 구성이에요');
+  if (r.axes.jawon >= 80) parts.push('한자 오행이 사주와 조화로워요');
+  if (r.axes.eumyang >= 80) parts.push('이름의 음양 균형이 좋아요');
+  if (!parts.length) {
+    const cand = { saju: '사주 기운을 보완해줘요', sugri: '수리 4격이 길해요', jawon: '한자 오행이 조화로워요', eumyang: '음양이 균형 있어요' };
+    const best = Object.keys(cand).sort((a, b) => r.axes[b] - r.axes[a])[0];
+    parts.push(cand[best]);
+  }
+  return parts.slice(0, 2).join(', ');
+}
 // 후보 이름(한글)만 Gemini에 던져 자연스러움 점수를 받고, 기존 명리점수와 합산해 재정렬
-async function scoreAndRank(cands, gender, seong) {
+async function scoreAndRank(cands, gender, seong, saju) {
   const g = (gender === 'F') ? '여자' : '남자';
   const list = cands.map((r, i) => `${i + 1}. ${seong}${r.hangul}`).join('\n');
-  const prompt = `다음은 ${g} 이름 후보다. 오직 '이 이름이 ${g} 이름으로서 얼마나 자연스럽고 듣기 좋은가' 한 가지 기준으로만 0~100점을 매겨라.
+  const prompt = `다음은 ${g} 이름 후보다. 오직 '이 이름이 ${g} 이름으로서 얼마나 자연스럽고 듣기 좋은가' 한 가지 기준으로만 0~100점(nat)을 매겨라.
 절대 보지 말 것: 한자, 뜻, 획수, 사주, 길흉, 작명 이론. 오로지 귀로 들었을 때의 어감·친숙함만 본다.
 점수 기준(짜게):
 - 실제로 흔히 쓰는 자연스러운 이름: 85~100
 - 가능하지만 다소 낯선 이름: 60~84
 - 단어처럼 어색하거나(겸단·계로·담운·결단 류) 이름 같지 않은 조합: 0~40
-tip은 어감에 대한 한 줄 코멘트만(뜻·한자·사주 언급 금지). 반드시 JSON 배열로만: [{"no":1,"nat":92,"tip":"발음이 부드럽고 친숙해요"}]
+반드시 JSON 배열로만: [{"no":1,"nat":92}]
 이름:
 ${list}`;
-  // 명리 점수 보존
   cands.forEach((r) => { r.baseTotal = r.total; });
-  let scored = false;
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const j = await resp.json();
     const m = (j.text || '').replace(/```json|```/g, '').match(/\[[\s\S]*\]/);
-    if (m) {
-      JSON.parse(m[0]).forEach((o) => {
-        const r = cands[(o.no | 0) - 1];
-        if (r) { r.axes.nature = Math.max(0, Math.min(100, o.nat | 0)); r.tip = o.tip || ''; }
-      });
-      scored = true;
-    }
+    if (m) JSON.parse(m[0]).forEach((o) => {
+      const r = cands[(o.no | 0) - 1];
+      if (r) r.axes.nature = Math.max(0, Math.min(100, o.nat | 0));
+    });
   } catch (e) {}
   cands.forEach((r) => {
     if (r.axes.nature == null) r.axes.nature = 55; // 평가 누락 시 중립값
     r.total = Math.round(r.baseTotal * (1 - NATURE_W) + r.axes.nature * NATURE_W);
+    r.tip = strengthTip(r, saju); // 표시용: 이 이름의 강점(발음 제외)
   });
   cands.sort((a, b) => b.total - a.total);
   return cands.slice(0, 10);
