@@ -235,6 +235,45 @@ async function deepAnalysis() {
   } catch (e) { el.innerHTML = '<p>오류가 발생했어요. 잠시 후 다시 시도해 주세요.</p>'; }
   btn.disabled = false;
 }
+// 🃏 사주 타로 — 가중 추출 + 사주 연계 통합 리딩
+const TAROT_POS = ['과거', '현재', '미래'];
+async function tarotReading() {
+  const saju = window._usSaju;
+  if (!saju) { alert('먼저 사주 풀이를 보세요'); return; }
+  const cards = window.Tarot.draw(saju, 3);
+  $('us-tarot').innerHTML = cards.map((c, i) => `
+    <div class="tarot-card${c.reversed ? ' rev' : ''}">
+      <div class="tc-pos">${TAROT_POS[i]}</div>
+      <div class="tc-num">${c.num}</div>
+      <div class="tc-name">${c.ko}</div>
+      <div class="tc-meta"><span class="wx-${c.wx}">${c.wx}</span>${c.reversed ? ' · <b>역방향</b>' : ' · 정방향'}</div>
+      <div class="tc-kw">${c.kw}</div>
+    </div>`).join('');
+  const el = $('us-tarot-reading'); const btn = $('usTarotBtn');
+  el.textContent = '🔮 사주 × 타로 통합 리딩 생성 중… (20~40초)';
+  btn.disabled = true;
+  const cardLines = cards.map((c, i) => `${TAROT_POS[i]}: ${c.ko}(${c.en}) ${c.reversed ? '역방향' : '정방향'} — ${c.wx}오행, ${c.kw}`).join('\n');
+  const dw = saju.daewoon, sw = saju.sewoon;
+  const prompt = `너는 사주명리와 타로를 함께 보는 상담가다. 아래 한 사람의 사주와, 그 사주의 기운으로 뽑은 타로 3장(과거·현재·미래)을 유기적으로 엮어 통합 리딩을 해줘.
+규칙: 각 카드가 이 사주의 어떤 부분(오행 과부족·십신·현재 대운/세운)과 연결되는지 짚고, 과거→현재→미래 흐름의 이야기로 풀 것. 역방향은 그 카드 의미의 지연·내면화·과잉으로 해석. 단정적 운세는 피하고 '~일 수 있어요' 톤. 8~12문장, 마지막 2~3줄은 구체적 조언.
+
+[사주]
+사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
+일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}, ${saju.tti}띠
+오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
+용신/보충오행: ${saju.target.join(', ')}
+${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
+${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}
+
+[뽑은 타로]
+${cardLines}`;
+  try {
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const j = await resp.json();
+    el.textContent = j.text ? '🔮 ' + j.text : '리딩을 불러오지 못했어요.';
+  } catch (e) { el.textContent = '오류가 발생했어요. 잠시 후 다시 시도해 주세요.'; }
+  btn.disabled = false;
+}
 // ① 사주풀이 (메인)
 function usAnalyze() {
   const birth = getBirth();
@@ -474,6 +513,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadDictionary();
   $('usBtn').addEventListener('click', usAnalyze);
   $('usDeepBtn').addEventListener('click', deepAnalysis);
+  $('usTarotBtn').addEventListener('click', tarotReading);
   $('analyze').addEventListener('click', analyze);
   $('mnBtn').addEventListener('click', scoreMyName);
   $('mnSeong').addEventListener('input', mnPopulateSeong);
