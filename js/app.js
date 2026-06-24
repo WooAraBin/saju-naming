@@ -396,14 +396,14 @@ function strengthTip(r, saju) {
 // 후보 이름(한글)만 Gemini에 던져 자연스러움 점수를 받고, 기존 명리점수와 합산해 재정렬
 async function scoreAndRank(cands, gender, seong, saju) {
   const g = (gender === 'F') ? '여자' : '남자';
-  const list = cands.map((r, i) => `${i + 1}. ${seong}${r.hangul}`).join('\n');
-  const prompt = `다음은 ${g} 이름 후보다. 오직 '이 이름이 ${g} 이름으로서 얼마나 자연스럽고 듣기 좋은가' 한 가지 기준으로만 0~100점(nat)을 매겨라.
-절대 보지 말 것: 한자, 뜻, 획수, 사주, 길흉, 작명 이론. 오로지 귀로 들었을 때의 어감·친숙함만 본다.
-점수 기준(짜게):
-- 실제로 흔히 쓰는 자연스러운 이름: 85~100
-- 가능하지만 다소 낯선 이름: 60~84
-- 단어처럼 어색하거나(겸단·계로·담운·결단 류) 이름 같지 않은 조합: 0~40
-반드시 JSON 배열로만: [{"no":1,"nat":92}]
+  const need = (saju.target || []).join('·');
+  const list = cands.map((r, i) => `${i + 1}. ${seong}${r.hangul} (${r.hanja})`).join('\n');
+  const prompt = `다음은 사주에 맞춰 만든 ${g} 이름 후보다(한글·한자). 이 사주는 ${need} 오행을 보충하면 좋다.
+각 후보에 대해 두 가지를 매겨라.
+[nat] 한자·뜻·사주는 전부 무시하고, 오직 소리 내어 불렀을 때의 어감만으로 자연스러움 0~100점(짜게).
+  - 흔하고 자연스러운 이름 85~100 / 다소 낯선 이름 60~84 / 단어처럼 어색한 조합(겸단·계로·담운·결단 류) 0~40
+[tip] 이 이름의 강점 한 줄. 두 한자 글자의 뜻·이미지를 풀어 그 이름이 주는 인상을 표현하라(예: "넓을 浩·뜻 志 — 큰 포부와 너른 마음"). 발음·어감은 절대 언급 금지. 후보마다 서로 다르게. '금·수를 보충한다' 같은 사주 문구는 정말 두드러질 때만 가끔, 매번 붙이지 마라.
+반드시 JSON 배열로만: [{"no":1,"nat":92,"tip":"맑을 瑞·고울 娟 — 단정하고 귀한 인상"}]
 이름:
 ${list}`;
   cands.forEach((r) => { r.baseTotal = r.total; });
@@ -413,13 +413,13 @@ ${list}`;
     const m = (j.text || '').replace(/```json|```/g, '').match(/\[[\s\S]*\]/);
     if (m) JSON.parse(m[0]).forEach((o) => {
       const r = cands[(o.no | 0) - 1];
-      if (r) r.axes.nature = Math.max(0, Math.min(100, o.nat | 0));
+      if (r) { r.axes.nature = Math.max(0, Math.min(100, o.nat | 0)); if (o.tip) r.tip = String(o.tip); }
     });
   } catch (e) {}
   cands.forEach((r) => {
     if (r.axes.nature == null) r.axes.nature = 55; // 평가 누락 시 중립값
     r.total = Math.round(r.baseTotal * (1 - NATURE_W) + r.axes.nature * NATURE_W);
-    r.tip = strengthTip(r, saju); // 표시용: 이 이름의 강점(발음 제외)
+    if (!r.tip) r.tip = strengthTip(r, saju); // Gemini tip 누락 시 로컬 강점
   });
   cands.sort((a, b) => b.total - a.total);
   return cands.slice(0, 10);
