@@ -257,10 +257,10 @@ function usAnalyze() {
 
 /* ---------- 추천 목록 ---------- */
 const AXIS_LABELS = {
-  saju: '사주보완', sugri: '수리길흉', eum: '발음오행',
+  nature: '자연스러움', saju: '사주보완', sugri: '수리길흉', eum: '발음오행',
   jawon: '자원조화', eumyang: '음양조화', call: '발음편의',
 };
-const AXIS_ORDER = ['saju', 'sugri', 'eum', 'jawon', 'eumyang', 'call'];
+const AXIS_ORDER = ['nature', 'saju', 'sugri', 'eum', 'jawon', 'eumyang', 'call'];
 
 function renderList(results) {
   $('name-list').innerHTML = results
@@ -334,37 +334,50 @@ async function analyze() {
   const btn = $('analyze');
   btn.disabled = true; btn.textContent = '후보 계산 중...';
   await new Promise((r) => setTimeout(r, 10));
-  const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 56, maxPerFirstChar: 4, naturalN: 42, highN: 14, excludeHyung: false });
+  const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 40, maxPerFirstChar: 3, naturalN: 28, highN: 14, excludeHyung: false });
   if (!cands.length) { btn.disabled = false; btn.textContent = '이름 추천 받기'; alert('후보를 만들지 못했습니다.'); return; }
-  btn.textContent = '자연스러운 이름 고르는 중...';
-  lastResults = await selectNatural(cands, saju.gender);
+  btn.textContent = '자연스러움 평가 중...';
+  lastResults = await scoreAndRank(cands, saju.gender, seong);
   btn.disabled = false; btn.textContent = '이름 추천 받기';
   renderList(lastResults);
   renderRadar(lastResults[0]);
 }
 
-// 후보 → Gemini가 '강점 있는 자연스러운 이름' 선별
-async function selectNatural(cands, gender) {
+// 자연스러움 점수 가중치 (최종점수 = 명리점수*(1-W) + 자연스러움*W)
+const NATURE_W = 0.45;
+// 후보 이름(한글)만 Gemini에 던져 자연스러움 점수를 받고, 기존 명리점수와 합산해 재정렬
+async function scoreAndRank(cands, gender, seong) {
   const g = (gender === 'F') ? '여자' : '남자';
-  const list = cands.map((r, i) => `${i + 1}. ${r.hangul} ${r.hanja} 총${r.total}${r.isNatural ? ' [자연]' : ''} (사주보완 ${r.axes.saju}, 수리 ${r.axes.sugri}, 발음 ${r.axes.eum}, 자원 ${r.axes.jawon})`).join('\n');
-  const prompt = `아래는 사주에 맞는 ${g} 작명 후보 ${cands.length}개(번호·한글·한자·총점)다. [자연] 표시는 한국에서 실제로 흔히 쓰는 부르기 좋은 이름이다.
-정확히 10개를 골라라:
-- 8개: [자연] 표시 중에서, ${g} 이름으로 자연스럽고 선호도 높은 것. 총점은 80점만 넘으면 충분하다(95점 고집하지 마라). 단 각자 뚜렷한 강점(발음이 부드럽다 / 수리가 길하다 / 부족한 오행을 잘 보완한다 등)이 있어야 한다 — '무난해서'는 강점이 아니다.
-- 2개: [자연] 아니어도 좋으니 점수가 특히 높고 개성 있는 이름.
-- 단어처럼 어색하거나(결단·고년·노이 류) ${g} 이름으로 위화감 있는 조합은 절대 고르지 마라.
-각 선택은 번호와 한 줄 강점평. 반드시 JSON 배열로만: [{"no":12,"tip":"발음이 부드럽고 수리가 길해요"}]
-후보:
+  const list = cands.map((r, i) => `${i + 1}. ${seong}${r.hangul}`).join('\n');
+  const prompt = `다음은 ${g} 이름 후보다. 각 이름이 한국에서 실제 ${g} 이름으로 얼마나 자연스럽고 부르기 좋은지 0~100점으로 평가해라. 한자나 사주는 보지 말고 오직 '이름 어감'만 본다.
+기준(짜게 평가):
+- 실제로 흔하고 자연스러운 이름: 85~100
+- 가능하지만 다소 낯선 이름: 60~84
+- 단어처럼 어색하거나(겸단·계로·담운·결단 류) 이름 같지 않은 조합: 0~40
+각 항목에 한 줄 코멘트(tip). 반드시 JSON 배열로만: [{"no":1,"nat":92,"tip":"부드럽고 흔한 이름"}]
+이름:
 ${list}`;
+  // 명리 점수 보존
+  cands.forEach((r) => { r.baseTotal = r.total; });
+  let scored = false;
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const j = await resp.json();
     const m = (j.text || '').replace(/```json|```/g, '').match(/\[[\s\S]*\]/);
-    if (!m) return cands.slice(0, 10);
-    const arr = JSON.parse(m[0]);
-    const out = [];
-    arr.forEach((o) => { const r = cands[(o.no | 0) - 1]; if (r) { r.tip = o.tip || ''; out.push(r); } });
-    return out.length ? out : cands.slice(0, 10);
-  } catch (e) { return cands.slice(0, 10); }
+    if (m) {
+      JSON.parse(m[0]).forEach((o) => {
+        const r = cands[(o.no | 0) - 1];
+        if (r) { r.axes.nature = Math.max(0, Math.min(100, o.nat | 0)); r.tip = o.tip || ''; }
+      });
+      scored = true;
+    }
+  } catch (e) {}
+  cands.forEach((r) => {
+    if (r.axes.nature == null) r.axes.nature = 55; // 평가 누락 시 중립값
+    r.total = Math.round(r.baseTotal * (1 - NATURE_W) + r.axes.nature * NATURE_W);
+  });
+  cands.sort((a, b) => b.total - a.total);
+  return cands.slice(0, 10);
 }
 
 /* ---------- 내 이름 점수 (한글) ---------- */
