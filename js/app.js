@@ -140,12 +140,6 @@ function sajuPrompt(saju, forNaming) {
 ${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
 ${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
 }
-function renderSaju(saju) {
-  $('pillars').innerHTML = sajuPillarsHtml(saju);
-  $('wxdist').innerHTML = sajuWxHtml(saju);
-  $('yongsin-text').innerHTML = sajuSummaryHtml(saju, true);
-  $('saju-card').classList.remove('hidden');
-}
 async function explainSajuInto(elId, saju, forNaming) {
   const el = $(elId); if (!el) return;
   el.textContent = '🔮 사주 해설 생성 중...';
@@ -155,7 +149,6 @@ async function explainSajuInto(elId, saju, forNaming) {
     el.textContent = j.text ? '🔮 ' + j.text : '';
   } catch (e) { el.textContent = ''; }
 }
-function explainSaju(saju) { return explainSajuInto('saju-ai', saju, true); }
 
 // 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이 + 타로 연결
 function deepPrompt(saju) {
@@ -449,7 +442,6 @@ function scoreMyName() {
   if (fullHanja) {
     const saju = mnBirthSaju();
     if (!saju) { alert('한자 6항목 채점은 위 출생 정보(생년월일·시각)가 필요합니다'); return; }
-    renderSaju(saju);
     const surnameObj = (DICT.surname[seong] || []).find((x) => x.hanja === sHanja)
       || { hangul: seong, hanja: sHanja, strokes: 0, wuxing: '토' };
     const chars = chars2.map((h, i) => (DICT.pool.find((p) => p.hangul === h && p.hanja === nameSels[i]))
