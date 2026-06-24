@@ -15,6 +15,33 @@ let lastResults = [];
 
 const $ = (id) => document.getElementById(id);
 
+// 출생 도시 → 경도 (지방시 보정 자동). '해외·모름'은 보정 안 함.
+const CITY = {
+  '서울': 126.98, '인천': 126.70, '수원': 127.03, '성남': 127.13, '용인': 127.18,
+  '춘천': 127.73, '강릉': 128.90, '청주': 127.49, '세종': 127.29, '대전': 127.38,
+  '천안': 127.15, '전주': 127.15, '광주': 126.85, '목포': 126.39, '여수': 127.66,
+  '순천': 127.49, '대구': 128.60, '안동': 128.73, '포항': 129.36, '경주': 129.22,
+  '부산': 129.08, '울산': 129.31, '창원': 128.68, '진주': 128.11, '제주': 126.53,
+  '개성(북)': 126.55, '평양(북)': 125.75,
+  '해외·모름': null,
+};
+function populateCity() {
+  $('city').innerHTML = Object.keys(CITY).map((c) => `<option value="${c}">${c}</option>`).join('');
+  $('city').value = '서울';
+}
+// 공용 출생정보 → computeSaju 입력
+function getBirth() {
+  const [y, m, d] = ($('birthdate').value || '').split('-').map(Number);
+  const [hh, mm] = ($('birthtime').value || '').split(':').map(Number);
+  const city = $('city').value, lon = CITY[city];
+  return {
+    year: y, month: m, day: d, hour: hh, minute: mm,
+    lon: lon == null ? 127.0 : lon,
+    applyLocalTime: lon != null, // 도시 알면 보정, 해외/모름이면 미보정
+    gender: $('gender').value,
+  };
+}
+
 // 색상: 점수 → 배지 색
 function scoreColor(n) {
   if (n >= 80) return '#2e7d52';
@@ -63,36 +90,36 @@ async function loadDictionary() {
 }
 
 /* ---------- 사주 표시 ---------- */
-function renderSaju(saju) {
+function sajuPillarsHtml(saju) {
   const KO = { year: '연주', month: '월주', day: '일주', time: '시주' };
   const sip = (saju.sip && saju.sip.pillars) || {};
-  $('pillars').innerHTML = ['year', 'month', 'day', 'time'].map((p) => {
+  return ['year', 'month', 'day', 'time'].map((p) => {
     const s = sip[p] || {};
     return `<div class="pillar"><div class="ko">${KO[p]}</div>` +
       `<div class="ss">${s.gan || ''}</div><div class="gz">${saju.pillars[p]}</div><div class="ss">${s.zhi || ''}</div></div>`;
   }).join('');
-  $('wxdist').innerHTML = window.Saju.WX_KO
-    .map((o) => `<span class="wx-chip">${o} <b>${saju.count[o]}</b></span>`).join('');
+}
+function sajuWxHtml(saju) {
+  return window.Saju.WX_KO.map((o) => `<span class="wx-chip">${o} <b>${saju.count[o]}</b></span>`).join('');
+}
+function sajuSummaryHtml(saju, forNaming) {
   const gc = (saju.sip && saju.sip.groupCount) || {};
   const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k} ${gc[k]}`).join(' · ');
   const dw = saju.daewoon, sw = saju.sewoon;
-  $('yongsin-text').innerHTML =
-    `<b>일간 ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'}</b><br>` +
-    `${saju.reason}<br>→ <b>이름에 보충 권장 오행: ${saju.target.join(', ')}</b><br>` +
+  return `<b>일간 ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'}</b><br>` +
+    `${saju.reason}<br>` +
+    (forNaming ? `→ <b>이름에 보충 권장 오행: ${saju.target.join(', ')}</b><br>` : '') +
     (sipStr ? `<span class="muted">십신 분포: ${sipStr}</span><br>` : '') +
     (dw ? `<span class="muted">현재 대운: ${dw.ganzhi} (${dw.sipsin}, ${dw.startAge}세~)</span><br>` : '') +
     (sw ? `<span class="muted">올해(${sw.year}) 세운: ${sw.ganzhi} (${sw.sipsin})</span>` : '') +
     (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분</span>` : '');
-  $('saju-card').classList.remove('hidden');
 }
-async function explainSaju(saju) {
-  const el = $('saju-ai'); if (!el) return;
-  el.textContent = '🔮 사주 해설 생성 중...';
+function sajuPrompt(saju, forNaming) {
   const gc = (saju.sip && saju.sip.groupCount) || {};
   const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k}${gc[k]}`).join(', ');
   const dw = saju.daewoon, sw = saju.sewoon;
-  const prompt = `너는 한국 사주명리 전문가다. 아래 사주를 6~9문장으로 깊이 있게, 따뜻하게 풀어줘.
-타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤. 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.
+  return `너는 한국 사주명리 전문가다. 아래 사주를 ${forNaming ? '6~9' : '8~12'}문장으로 깊이 있게, 따뜻하게 풀어줘.
+타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤.${forNaming ? ' 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.' : ' 직업·재물·관계·건강 흐름도 짚어줘.'}
 사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
 일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
@@ -100,11 +127,34 @@ async function explainSaju(saju) {
 용신/보충오행: ${saju.target.join(', ')}
 ${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
 ${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
+}
+function renderSaju(saju) {
+  $('pillars').innerHTML = sajuPillarsHtml(saju);
+  $('wxdist').innerHTML = sajuWxHtml(saju);
+  $('yongsin-text').innerHTML = sajuSummaryHtml(saju, true);
+  $('saju-card').classList.remove('hidden');
+}
+async function explainSajuInto(elId, saju, forNaming) {
+  const el = $(elId); if (!el) return;
+  el.textContent = '🔮 사주 해설 생성 중...';
   try {
-    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: sajuPrompt(saju, forNaming) }) });
     const j = await resp.json();
     el.textContent = j.text ? '🔮 ' + j.text : '';
   } catch (e) { el.textContent = ''; }
+}
+function explainSaju(saju) { return explainSajuInto('saju-ai', saju, true); }
+// ① 사주풀이 (메인)
+function usAnalyze() {
+  const birth = getBirth();
+  if (!birth.year) { alert('생년월일을 입력하세요'); return; }
+  const saju = window.Saju.computeSaju(birth);
+  window._usSaju = saju; // 타로 연동용
+  $('usResult').classList.remove('hidden');
+  $('us-pillars').innerHTML = sajuPillarsHtml(saju);
+  $('us-wxdist').innerHTML = sajuWxHtml(saju);
+  $('us-yongsin').innerHTML = sajuSummaryHtml(saju, false);
+  explainSajuInto('us-ai', saju, false);
 }
 
 /* ---------- 추천 목록 ---------- */
@@ -176,15 +226,9 @@ async function analyze() {
   }
   const surname = surnameArr[0]; // 대표 한자
 
-  const [y, m, d] = $('birthdate').value.split('-').map(Number);
-  const [hh, mm] = $('birthtime').value.split(':').map(Number);
-
-  const saju = window.Saju.computeSaju({
-    year: y, month: m, day: d, hour: hh, minute: mm,
-    lon: parseFloat($('lon').value) || 127.0,
-    applyLocalTime: $('useLocal').checked,
-    gender: $('gender').value,
-  });
+  const birth = getBirth();
+  if (!birth.year) { alert('생년월일을 입력하세요'); return; }
+  const saju = window.Saju.computeSaju(birth);
   renderSaju(saju);
   explainSaju(saju);
 
@@ -251,11 +295,9 @@ function mnPopulateName() {
   }).join('');
 }
 function mnBirthSaju() {
-  const [y, m, d] = ($('mnBirth').value || '').split('-').map(Number);
-  const [hh, mm] = ($('mnTime').value || '').split(':').map(Number);
-  if (!y) return null;
-  return window.Saju.computeSaju({ year: y, month: m, day: d, hour: hh, minute: mm,
-    lon: parseFloat($('mnLon').value) || 127.0, applyLocalTime: $('mnUseLocal').checked });
+  const birth = getBirth();
+  if (!birth.year) return null;
+  return window.Saju.computeSaju(birth);
 }
 function scoreMyName() {
   const seong = $('mnSeong').value.trim();
@@ -285,8 +327,10 @@ function scoreMyName() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  populateCity();
   $('dataStatus').textContent = '데이터 불러오는 중...';
   await loadDictionary();
+  $('usBtn').addEventListener('click', usAnalyze);
   $('analyze').addEventListener('click', analyze);
   $('mnBtn').addEventListener('click', scoreMyName);
   $('mnSeong').addEventListener('input', mnPopulateSeong);
