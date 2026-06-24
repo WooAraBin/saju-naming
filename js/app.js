@@ -156,6 +156,92 @@ async function explainSajuInto(elId, saju, forNaming) {
   } catch (e) { el.textContent = ''; }
 }
 function explainSaju(saju) { return explainSajuInto('saju-ai', saju, true); }
+
+// 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이 + 타로 연결
+function deepPrompt(saju) {
+  const p = saju.pillars, sp = saju.sip.pillars, dt = saju.detail || {};
+  const sipLine = `연주 천간 ${p.year[0]}=${sp.year.gan} / 지지 ${p.year[1]}=${sp.year.zhi}, ` +
+    `월주 천간 ${p.month[0]}=${sp.month.gan} / 지지 ${p.month[1]}=${sp.month.zhi}, ` +
+    `일주 천간 ${p.day[0]}=일간 / 지지 ${p.day[1]}=${sp.day.zhi}, ` +
+    `시주 천간 ${p.time[0]}=${sp.time.gan} / 지지 ${p.time[1]}=${sp.time.zhi}`;
+  const hide = ['year', 'month', 'day', 'time'].map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
+  const dwList = (saju.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
+  const dw = saju.daewoon, sw = saju.sewoon;
+  return `너는 한국 최고의 사주명리·타로 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
+반드시 아래 구조의 마크다운으로(## 제목, **굵게**, - 글머리), 단정적 운세는 피하고 '~일 수 있어요/~한 편이에요' 톤으로, 따뜻하지만 디테일하게.
+
+## 사주 원국
+- 팔자와 일간(${saju.dayGan}${saju.dayWx})의 물상(物象)·기질을 그림 그리듯 설명
+
+## 오행 분석
+- 분포를 보고 강한/약한 오행이 성격·재물·관계·건강에 주는 의미를 핵심 포인트로
+
+## 일간 ${saju.dayGan}의 특성
+- 같은 오행이라도 ${saju.dayGan}만의 결을 살려서
+
+## 십신 배치 해석
+- 각 기둥 십신이 말하는 성향·적성·직업 코드
+
+## 지지 합충 관계
+- 삼합·육합·반합·충·형·해를 직접 찾아 의미 해석 (가장 중요한 충부터)
+
+## 상세 성격 분석
+- 2~4개 포인트로 입체적으로
+
+## 대운 흐름
+- 전체 대운을 한 줄씩 짚고, **현재 대운**을 심층 분석한 뒤 어울리는 타로 메이저 카드 1장을 연결해 해석
+
+## 올해 세운
+- 올해 흐름을 심층 분석하고 타로 카드 1장 연결
+
+## 종합 조언
+- 직업·재물·관계·건강을 한 단락씩
+
+[사주 데이터]
+사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day} / 시 ${p.time}
+일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}, ${saju.tti}띠
+오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
+십신 배치: ${sipLine}
+지장간: ${hide}
+용신/보충오행: ${saju.target.join(', ')}
+대운 전체: ${dwList}
+현재 대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'}
+올해 세운: ${sw ? `${sw.year} ${sw.ganzhi}(${sw.sipsin})` : '-'}`;
+}
+// 아주 가벼운 마크다운 → HTML (## 제목, **굵게**, - 목록)
+function mdLite(t) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = esc(t).split('\n'); let html = '', inUl = false;
+  const inline = (s) => s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  for (let raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (/^#{1,3}\s/.test(line)) {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<h3 class="deep-h">${inline(line.replace(/^#{1,3}\s/, ''))}</h3>`;
+    } else if (/^[-*]\s/.test(line)) {
+      if (!inUl) { html += '<ul class="deep-ul">'; inUl = true; }
+      html += `<li>${inline(line.replace(/^[-*]\s/, ''))}</li>`;
+    } else {
+      if (inUl) { html += '</ul>'; inUl = false; }
+      if (line.trim()) html += `<p>${inline(line)}</p>`;
+    }
+  }
+  if (inUl) html += '</ul>';
+  return html;
+}
+async function deepAnalysis() {
+  const saju = window._usSaju;
+  if (!saju) { alert('먼저 사주 풀이를 보세요'); return; }
+  const el = $('us-deep'); const btn = $('usDeepBtn');
+  el.innerHTML = '<p>🔎 사주팔자 심층 분석 생성 중… (20~40초)</p>';
+  btn.disabled = true;
+  try {
+    const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: deepPrompt(saju) }) });
+    const j = await resp.json();
+    el.innerHTML = j.text ? mdLite(j.text) : '<p>해설을 불러오지 못했어요.</p>';
+  } catch (e) { el.innerHTML = '<p>오류가 발생했어요. 잠시 후 다시 시도해 주세요.</p>'; }
+  btn.disabled = false;
+}
 // ① 사주풀이 (메인)
 function usAnalyze() {
   const birth = getBirth();
@@ -368,6 +454,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('dataStatus').textContent = '데이터 불러오는 중...';
   await loadDictionary();
   $('usBtn').addEventListener('click', usAnalyze);
+  $('usDeepBtn').addEventListener('click', deepAnalysis);
   $('analyze').addEventListener('click', analyze);
   $('mnBtn').addEventListener('click', scoreMyName);
   $('mnSeong').addEventListener('input', mnPopulateSeong);
