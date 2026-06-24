@@ -77,22 +77,10 @@
     <!-- ③ 작명 추천 -->
     <section class="card" id="form-card">
       <h2>✨ 작명 추천</h2>
-      <p class="sub" style="margin:0 0 10px">사주에 맞춰 좋은 이름을 추천합니다.</p>
-      <div class="grid">
-        <label>성(姓)<input id="seong" type="text" maxlength="1" placeholder="예: 김" /></label>
-      </div>
+      <p class="sub" style="margin:0 0 10px">위에 입력한 <b>성·사주</b>를 바탕으로 부르기 좋은 이름을 추천합니다. <span class="muted">(성은 '내 이름 점수'의 성을 사용)</span></p>
       <div class="row">
-        <button id="analyze" class="primary">사주 맞춤 이름 추천</button>
+        <button id="analyze" class="primary">이름 추천 받기</button>
       </div>
-    </section>
-
-    <!-- 작명용 사주 결과 -->
-    <section class="card hidden" id="saju-card">
-      <h2>사주 분석</h2>
-      <div id="pillars" class="pillars"></div>
-      <div id="wxdist" class="wxdist"></div>
-      <p id="yongsin-text" class="yongsin"></p>
-      <div id="saju-ai" class="yongsin" style="margin-top:10px;white-space:pre-wrap"></div>
     </section>
 
     <!-- 추천 이름 + 육각형 -->

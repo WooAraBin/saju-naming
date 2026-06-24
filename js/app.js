@@ -92,12 +92,24 @@ async function loadDictionary() {
 /* ---------- 사주 표시 ---------- */
 function sajuPillarsHtml(saju) {
   const KO = { year: '연주', month: '월주', day: '일주', time: '시주' };
+  const ps = ['year', 'month', 'day', 'time'];
   const sip = (saju.sip && saju.sip.pillars) || {};
-  return ['year', 'month', 'day', 'time'].map((p) => {
-    const s = sip[p] || {};
-    return `<div class="pillar"><div class="ko">${KO[p]}</div>` +
-      `<div class="ss">${s.gan || ''}</div><div class="gz">${saju.pillars[p]}</div><div class="ss">${s.zhi || ''}</div></div>`;
-  }).join('');
+  const dt = saju.detail || {};
+  const GW = window.Saju.GAN_WX, ZW = window.Saju.ZHI_WX;
+  const gan = (p) => saju.pillars[p][0], zhi = (p) => saju.pillars[p][1];
+  const row = (label, fn) => `<tr><th>${label}</th>${ps.map((p) => `<td>${fn(p)}</td>`).join('')}</tr>`;
+  return `<table class="saju-table">
+    <thead><tr><th></th>${ps.map((p) => `<th>${KO[p]}</th>`).join('')}</tr></thead>
+    <tbody>
+    ${row('십신', (p) => { const g = (sip[p] || {}).gan; return g === '일간' ? '<b class="ilgan">일간</b>' : (g || ''); })}
+    ${row('천간', (p) => `<span class="gz-big wx-${GW[gan(p)]}">${gan(p)}</span>`)}
+    ${row('지지', (p) => `<span class="gz-big wx-${ZW[zhi(p)]}">${zhi(p)}</span>`)}
+    ${row('십신', (p) => (sip[p] || {}).zhi || '')}
+    ${row('지장간', (p) => `<span class="muted">${(dt[p] || {}).hideGan || ''}</span>`)}
+    ${row('운성', (p) => (dt[p] || {}).unseong || '')}
+    ${row('납음', (p) => `<span class="muted">${(dt[p] || {}).nayin || ''}</span>`)}
+    ${row('공망', (p) => `<span class="muted">${(dt[p] || {}).gongmang || ''}</span>`)}
+    </tbody></table>`;
 }
 function sajuWxHtml(saju) {
   return window.Saju.WX_KO.map((o) => `<span class="wx-chip">${o} <b>${saju.count[o]}</b></span>`).join('');
@@ -106,7 +118,7 @@ function sajuSummaryHtml(saju, forNaming) {
   const gc = (saju.sip && saju.sip.groupCount) || {};
   const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k} ${gc[k]}`).join(' · ');
   const dw = saju.daewoon, sw = saju.sewoon;
-  return `<b>일간 ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'}</b><br>` +
+  return `<b>${saju.pillars.year}생 · ${saju.tti || ''}띠 · 일간 ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'}</b><br>` +
     `${saju.reason}<br>` +
     (forNaming ? `→ <b>이름에 보충 권장 오행: ${saju.target.join(', ')}</b><br>` : '') +
     (sipStr ? `<span class="muted">십신 분포: ${sipStr}</span><br>` : '') +
@@ -217,11 +229,11 @@ function renderRadar(r) {
 
 /* ---------- 실행 ---------- */
 async function analyze() {
-  const seong = $('seong').value.trim();
-  if (!seong) { alert('성(姓)을 입력하세요'); return; }
+  const seong = ($('mnSeong').value || '').trim();
+  if (!seong) { alert("위 '내 이름 점수'에 성을 먼저 입력하세요"); return; }
   const surnameArr = DICT.surname[seong];
   if (!surnameArr || !surnameArr.length) {
-    alert(`'${seong}' 성씨 한자 데이터가 없습니다. (현재 시드에 등록된 성씨만 가능)`);
+    alert(`'${seong}' 성씨 한자 데이터가 없습니다.`);
     return;
   }
   const surname = surnameArr[0]; // 대표 한자
@@ -229,14 +241,12 @@ async function analyze() {
   const birth = getBirth();
   if (!birth.year) { alert('생년월일을 입력하세요'); return; }
   const saju = window.Saju.computeSaju(birth);
-  renderSaju(saju);
-  explainSaju(saju);
 
   const btn = $('analyze');
   btn.disabled = true; btn.textContent = '추천 계산 중...';
   await new Promise((r) => setTimeout(r, 10));
   lastResults = window.Naming.suggest(saju, surname, DICT.pool, { limit: 20, excludeHyung: false });
-  btn.disabled = false; btn.textContent = '사주 분석 + 이름 추천';
+  btn.disabled = false; btn.textContent = '이름 추천 받기';
 
   if (!lastResults.length) { alert('후보를 만들지 못했습니다.'); return; }
   renderList(lastResults);

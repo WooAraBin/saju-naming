@@ -59,6 +59,13 @@ button.primary:hover { background: #75502c; }
 .pillar .ko { font-size: 11px; color: #a39a8c; }
 .pillar .gz { font-size: 24px; font-weight: 700; letter-spacing: 2px; }
 .pillar .ss { font-size: 10px; color: #b08d57; font-weight: 600; line-height: 1.4; }
+.saju-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; text-align: center; font-size: 13px; }
+.saju-table th { color: #a39a8c; font-weight: 600; font-size: 11px; padding: 4px; background: #faf7f2; }
+.saju-table td { border: 1px solid var(--line); padding: 5px 4px; }
+.saju-table .gz-big { font-size: 22px; font-weight: 700; }
+.saju-table .ilgan { color: #b08d57; }
+.wx-목 { color: #2e7d32; } .wx-화 { color: #c0392b; } .wx-토 { color: #b8860b; }
+.wx-금 { color: #6b7b8c; } .wx-수 { color: #2c3e50; }
 .wxdist { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
 .wx-chip { padding: 4px 10px; border-radius: 20px; font-size: 13px; background: #f0ebe1; }
 .wx-chip b { color: var(--accent); }

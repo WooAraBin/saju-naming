@@ -55,6 +55,9 @@ const SIPSIN_GROUP = {
   비견:'비겁', 겁재:'비겁', 식신:'식상', 상관:'식상',
   편재:'재성', 정재:'재성', 편관:'관성', 정관:'관성', 편인:'인성', 정인:'인성',
 };
+// 띠(생년 지지) / 십이운성 — lunar의 중국어 표기 → 한글
+const TTI = { 鼠:'쥐', 牛:'소', 虎:'호랑이', 兔:'토끼', 龙:'용', 蛇:'뱀', 马:'말', 羊:'양', 猴:'원숭이', 鸡:'닭', 狗:'개', 猪:'돼지' };
+const UNSEONG = { 长生:'장생', 沐浴:'목욕', 冠带:'관대', 临官:'건록', 帝旺:'제왕', 衰:'쇠', 病:'병', 死:'사', 墓:'묘', 绝:'절', 胎:'태', 养:'양' };
 
 /**
  * 지방시 보정량(분) 계산. 동경 135° 기준.
@@ -85,7 +88,8 @@ function computeSaju(opt) {
     adj.getFullYear(), adj.getMonth() + 1, adj.getDate(),
     adj.getHours(), adj.getMinutes(), 0
   );
-  const ec = solar.getLunar().getEightChar();
+  const lunar = solar.getLunar();
+  const ec = lunar.getEightChar();
 
   const pillars = {
     year: ec.getYear(),   // "庚午" 형태
@@ -171,8 +175,28 @@ function computeSaju(opt) {
     sewoon = { year: yNow, ganzhi: gz, gan: gz[0], zhi: gz[1], sipsin: sipsin(dayGan, gz[0]), wx: { gan: GAN_WX[gz[0]], zhi: ZHI_WX[gz[1]] } };
   } catch (e) {}
 
+  // 11) 상세(만세력): 지장간·납음·십이운성·공망 + 띠
+  const detail = {};
+  let tti = '';
+  try {
+    const PMAP = { year: 'Year', month: 'Month', day: 'Day', time: 'Time' };
+    ['year', 'month', 'day', 'time'].forEach((p) => {
+      const P = PMAP[p];
+      const ds = ec['get' + P + 'DiShi'] ? ec['get' + P + 'DiShi']() : '';
+      detail[p] = {
+        hideGan: ec['get' + P + 'HideGan'] ? ec['get' + P + 'HideGan']().join('') : '',
+        nayin: ec['get' + P + 'NaYin'] ? ec['get' + P + 'NaYin']() : '',
+        unseong: UNSEONG[ds] || ds,
+        gongmang: ec['get' + P + 'XunKong'] ? ec['get' + P + 'XunKong']() : '',
+      };
+    });
+    const sx = lunar.getYearShengXiao();
+    tti = TTI[sx] || sx;
+  } catch (e) {}
+
   return {
     sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
+    detail, tti,
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
     offsetMin,

@@ -27,6 +27,25 @@ function duum(ch) {
   return String.fromCharCode(0xac00 + cho * 588 + jung * 28 + jong);
 }
 
+// 흔히 쓰는 이름 음절 — 추천 자연스러움(점수보다 부를 수 있는 이름 우선)
+const COMMON_SYLL = new Set((
+  '가 강 건 경 결 겸 계 고 관 광 교 구 권 규 근 금 기 길 나 남 노 누 다 단 담 대 덕 도 동 ' +
+  '라 람 래 려 련 령 로 루 류 린 림 마 만 명 모 무 문 미 민 바 백 범 별 보 복 봄 부 빈 ' +
+  '사 산 삼 상 새 서 석 선 설 성 세 소 솔 송 수 숙 순 슬 승 시 신 ' +
+  '아 안 애 야 양 어 언 여 연 열 영 예 오 온 완 요 용 우 욱 운 원 월 위 유 윤 율 으 은 의 이 인 일 ' +
+  '자 잔 재 정 제 조 종 주 준 중 지 진 찬 창 채 천 철 청 초 최 추 춘 충 치 ' +
+  '태 택 하 한 함 해 향 헌 혁 현 형 혜 호 홍 화 환 회 효 후 휘 희 빛 늘 ').trim().split(/\s+/)
+);
+
+// 이름에 거의 안 쓰는 한자(숫자·문법·부정·불쾌) — 추천에서 제외
+const EXCLUDE_HANJA = new Set((
+  '一 二 三 四 五 六 七 八 九 十 百 千 萬 万 兆 ' +
+  '之 乎 也 矣 焉 兮 而 其 厥 乃 爾 尔 于 且 又 亦 卽 則 哉 耶 邪 夫 凡 ' +
+  '亡 死 病 惡 鬼 厄 罪 囚 凶 兇 殺 喪 哭 怒 哀 苦 痛 疾 瘡 醜 賤 卑 奴 婢 妾 ' +
+  '寓 案 業 兄 尸 屍 糞 尿 嘔 吐 年 寡 孤 寒 貧 困 危 缺 ' +
+  '甲 乙 丙 丁 戊 己 庚 辛 壬 癸').trim().split(/\s+/)
+);
+
 function relWx(a, b) {
   if (a === b) return '비화';
   if (NM_SAENG[a] === b) return '상생';
@@ -143,6 +162,9 @@ function suggest(saju, surname, pool, opt = {}) {
   const targets = new Set([...(saju.yongsin || []), ...(saju.lacking || [])]);
   let cand = targets.size ? pool.filter((p) => targets.has(p.wuxing)) : pool.slice();
   if (!cand.length) cand = pool.slice();
+  // 부를 수 있는 이름 우선: 흔한 이름 음절로 제한(충분할 때만)
+  const candC = cand.filter((p) => COMMON_SYLL.has(p.hangul) || COMMON_SYLL.has(duum(p.hangul)));
+  if (candC.length >= 30) cand = candC;
   if (cand.length > maxCand) {
     const step = Math.ceil(cand.length / maxCand);
     cand = cand.filter((_, i) => i % step === 0);
