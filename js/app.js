@@ -332,11 +332,11 @@ async function analyze() {
   const saju = window.Saju.computeSaju(birth);
 
   const btn = $('analyze');
-  btn.disabled = true; btn.textContent = '후보 계산 중...';
+  btn.disabled = true; btn.textContent = '작명 중...';
   await new Promise((r) => setTimeout(r, 10));
   const cands = window.Naming.suggest(saju, surname, DICT.pool, { limit: 40, maxPerFirstChar: 3, naturalN: 28, highN: 14, excludeHyung: false });
   if (!cands.length) { btn.disabled = false; btn.textContent = '이름 추천 받기'; alert('후보를 만들지 못했습니다.'); return; }
-  btn.textContent = '자연스러움 평가 중...';
+  btn.textContent = '작명 중...';
   lastResults = await scoreAndRank(cands, saju.gender, seong);
   btn.disabled = false; btn.textContent = '이름 추천 받기';
   renderList(lastResults);
