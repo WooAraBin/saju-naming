@@ -270,7 +270,7 @@ function renderList(results) {
           <span><span class="nm">${r.hangul}</span><span class="hj">${r.hanja}</span></span>
           <span class="score-badge" style="background:${scoreColor(r.total)}">${r.total}</span>
         </div>
-        ${r.tip ? `<div class="muted" style="font-size:12px;margin-top:3px;">💡 ${r.tip}</div>` : ''}
+        ${r.tip ? `<div class="tip">💡 ${r.tip}</div>` : ''}
       </li>`)
     .join('');
   $('name-list').querySelectorAll('li').forEach((li) => {

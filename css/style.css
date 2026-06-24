@@ -83,9 +83,10 @@ button.primary:disabled { opacity: .55; cursor: default; }
 .result-layout { display: grid; grid-template-columns: 1fr 360px; gap: 20px; }
 .name-list { margin: 0; padding-left: 0; list-style: none; max-height: 420px; overflow-y: auto; }
 .name-list li {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
   padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer;
 }
+.name-list li .tip { font-size: 12px; color: #8a8175; line-height: 1.5; }
 .name-list li.active { border-color: var(--accent); background: #faf6ee; }
 .name-list .nm { font-size: 17px; font-weight: 600; }
 .name-list .hj { color: #8a8175; font-size: 14px; margin-left: 6px; }
