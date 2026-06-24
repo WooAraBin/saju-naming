@@ -233,15 +233,21 @@ async function gsHandleFile(e) {
   const pv = $('gsPreview'); pv.src = dataUrl; pv.hidden = false;
 }
 async function gwansangReading() {
-  const saju = window._usSaju;
-  if (!saju) { alert('먼저 사주 풀이를 보세요'); return; }
   if (!_gsImage) { alert('얼굴 사진을 먼저 선택하세요'); return; }
   if (!$('gsConsent').checked) { alert('사진 사용 동의에 체크해 주세요'); return; }
+  // 사주는 선택사항: 이미 본 사주 → 출생정보로 계산 → 없으면 관상 단독
+  let saju = window._usSaju;
+  if (!saju) {
+    const birth = getBirth();
+    if (birth.year) { try { saju = window.Saju.computeSaju(birth); } catch (e) {} }
+  }
   const el = $('us-gwansang'); const btn = $('usGwansangBtn');
-  el.innerHTML = '<p>📷 사주 × 관상 분석 중… (20~40초)</p>';
+  el.innerHTML = `<p>📷 ${saju ? '사주 × 관상' : '관상'} 분석 중… (20~40초)</p>`;
   btn.disabled = true;
-  const dw = saju.daewoon, sw = saju.sewoon;
-  const prompt = `너는 사주명리와 관상(觀相)을 함께 보는 상담가다. 첨부된 얼굴 사진과 아래 사주를 엮어 통합 관상 리딩을 해줘. 마크다운(## 제목, **굵게**, - 목록).
+  let prompt;
+  if (saju) {
+    const dw = saju.daewoon, sw = saju.sewoon;
+    prompt = `너는 사주명리와 관상(觀相)을 함께 보는 상담가다. 첨부된 얼굴 사진과 아래 사주를 엮어 통합 관상 리딩을 해줘. 마크다운(## 제목, **굵게**, - 목록).
 
 [매우 중요 — 어조]
 - 잘생김/못생김 같은 미추(美醜) 평가는 절대 하지 마라.
@@ -265,6 +271,24 @@ async function gwansangReading() {
 용신/보충오행: ${saju.target.join(', ')}
 ${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
 ${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
+  } else {
+    prompt = `너는 관상(觀相) 전문가다. 첨부된 얼굴 사진만으로 관상을 풀이해줘. 마크다운(## 제목, **굵게**, - 목록).
+
+[매우 중요 — 어조]
+- 잘생김/못생김 같은 미추(美醜) 평가는 절대 하지 마라.
+- 대신 관상학적 특징은 구체적으로 관찰해 말하라: 예) "눈썹이 짧은 편이라 ~", "미간이 좁아서 ~", "코가 곧고 콧방울이 단단해 ~", "턱이 둥글어 ~". 특징 → 그 의미 해석으로 이어가라.
+- 단정적 운세는 피하고 '~한 편이에요/~일 수 있어요' 톤. 재미·참고용임을 전제.
+
+[구성]
+## 얼굴 오행
+- 얼굴형이 목·화·토·금·수 중 어디에 가까운지와 그 기질
+## 삼정(三停) — 초년·중년·말년
+- 이마(초년)·코와 광대(중년)·턱(말년)의 특징과 각 시기 운의 흐름
+## 오관(五官)
+- 눈썹·눈·코·입·귀 중 인상적인 부분의 특징과 의미
+## 종합
+- 전체 인상이 말해주는 성향과 조언 2~3줄`;
+  }
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, image: _gsImage }) });
     const j = await resp.json();
