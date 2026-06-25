@@ -148,7 +148,7 @@ async function explainSajuInto(elId, saju, forNaming) {
   } catch (e) { el.textContent = ''; }
 }
 
-// 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이 + 타로 연결
+// 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이
 function deepPrompt(saju) {
   const p = saju.pillars, sp = saju.sip.pillars, dt = saju.detail || {};
   const sipLine = `연주 천간 ${p.year[0]}=${sp.year.gan} / 지지 ${p.year[1]}=${sp.year.zhi}, ` +
@@ -158,7 +158,7 @@ function deepPrompt(saju) {
   const hide = ['year', 'month', 'day', 'time'].map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
   const dwList = (saju.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
   const dw = saju.daewoon, sw = saju.sewoon;
-  return `너는 한국 최고의 사주명리·타로 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
+  return `너는 한국 최고의 사주명리 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
 반드시 아래 구조의 마크다운으로(## 제목, **굵게**, - 글머리), 단정적 운세는 피하고 '~일 수 있어요/~한 편이에요' 톤으로, 따뜻하지만 디테일하게.
 
 ## 사주 원국
@@ -180,10 +180,10 @@ function deepPrompt(saju) {
 - 2~4개 포인트로 입체적으로
 
 ## 대운 흐름
-- 전체 대운을 한 줄씩 짚고, **현재 대운**을 심층 분석한 뒤 어울리는 타로 메이저 카드 1장을 연결해 해석
+- 전체 대운을 한 줄씩 짚고, **현재 대운**을 심층 분석
 
 ## 올해 세운
-- 올해 흐름을 심층 분석하고 타로 카드 1장 연결
+- 올해 흐름을 심층 분석
 
 ## 종합 조언
 - 직업·재물·관계·건강을 한 단락씩
@@ -328,7 +328,7 @@ function usAnalyze() {
   const birth = getBirth();
   if (!birth.year) { alert('생년월일을 입력하세요'); return; }
   const saju = window.Saju.computeSaju(birth);
-  window._usSaju = saju; // 타로 연동용
+  window._usSaju = saju; // 관상 연동용
   $('usResult').classList.remove('hidden');
   $('us-pillars').innerHTML = sajuPillarsHtml(saju);
   $('us-wxdist').innerHTML = sajuWxHtml(saju);
