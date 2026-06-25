@@ -58,6 +58,20 @@ async function loadDictionary() {
   for (const [hangul, arr] of Object.entries(local.SURNAME)) {
     surname[hangul] = arr.map(([hanja, strokes, wuxing]) => ({ hangul, hanja, strokes, wuxing }));
   }
+  // 복성(두 글자 성): 음절별 parts 보존(획수/오행), 대표값은 합/마지막글자
+  for (const [hangul, variants] of Object.entries(local.SURNAME_COMPOUND || {})) {
+    const syl = [...hangul];
+    surname[hangul] = variants.map((parts) => {
+      const ps = parts.map(([hanja, strokes, wuxing], i) => ({ hangul: syl[i], hanja, strokes, wuxing }));
+      return {
+        hangul,
+        hanja: ps.map((p) => p.hanja).join(''),
+        strokes: ps.reduce((a, p) => a + p.strokes, 0),
+        wuxing: ps[ps.length - 1].wuxing,
+        parts: ps,
+      };
+    });
+  }
   const pool = [];
   for (const [hangul, arr] of Object.entries(local.HANJA)) {
     arr.forEach(([hanja, strokes, wuxing]) => pool.push({ hangul, hanja, strokes, wuxing }));

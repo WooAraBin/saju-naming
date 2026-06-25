@@ -44,18 +44,24 @@ function grade(n) {
   return e ? { num: n, base: v, grade: e[0], label: e[1] } : { num: n, base: v, grade: '흉', label: '범위초과' };
 }
 
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+
 /**
- * 五格 계산
- * @param {number} seong 성 획수
- * @param {number} n1 이름 첫 글자 획수
- * @param {number} n2 이름 둘째 글자 획수
+ * 五格 계산 (단성·복성·외자/두자 이름 모두 지원)
+ *  - 천격: 단성=성획+1(가성수), 복성=성 전체 획 합
+ *  - 인격: 성의 마지막 글자 + 이름 첫 글자
+ *  - 지격: 외자이름=이름획+1(가성수), 두자이름=이름 획 합
+ *  - 총격: 성+이름 전체 획 합
+ *  - 외격: 총격 − 인격 + 1
+ * @param {number[]} sArr 성 각 글자 획수 (복성이면 길이 2)
+ * @param {number[]} nArr 이름 각 글자 획수
  */
-function computeGyeok(seong, n1, n2) {
-  const cheon = seong + 1;        // 천격(참고)
-  const inGyeok = seong + n1;     // 인격
-  const jiGyeok = n1 + n2;        // 지격
-  const chong = seong + n1 + n2;  // 총격
-  const oeGyeok = chong - inGyeok + 1; // 외격
+function computeGyeokMulti(sArr, nArr) {
+  const cheon = sArr.length === 1 ? sArr[0] + 1 : sum(sArr);
+  const inGyeok = sArr[sArr.length - 1] + nArr[0];
+  const jiGyeok = nArr.length === 1 ? nArr[0] + 1 : sum(nArr);
+  const chong = sum(sArr) + sum(nArr);
+  const oeGyeok = chong - inGyeok + 1;
 
   const judged = {
     cheon: grade(cheon),
@@ -71,4 +77,14 @@ function computeGyeok(seong, n1, n2) {
   return { ...judged, allGood, hasHyung };
 }
 
-window.Sugri = { computeGyeok, grade, SU81 };
+/**
+ * 五格 계산 (단성 + 두자 이름) — 하위호환 래퍼
+ * @param {number} seong 성 획수
+ * @param {number} n1 이름 첫 글자 획수
+ * @param {number} n2 이름 둘째 글자 획수
+ */
+function computeGyeok(seong, n1, n2) {
+  return computeGyeokMulti([seong], [n1, n2]);
+}
+
+window.Sugri = { computeGyeok, computeGyeokMulti, grade, SU81 };

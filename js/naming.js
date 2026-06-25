@@ -91,11 +91,11 @@ function scoreJawon(chars) {
   return { 상생: 100, 비화: 82, 역생: 58, 상극: 28, 역극: 20 }[r];
 }
 
-// 5) 음양조화 (획수 홀짝). 성+이1+이2가 한쪽 음양으로 쏠리면 흉.
-function scoreEumyang(seongStrokes, chars) {
-  const par = [seongStrokes, ...chars.map((c) => c.strokes)].map((n) => n % 2);
+// 5) 음양조화 (획수 홀짝). 성+이름 전체가 한쪽 음양으로 쏠리면 흉. (복성이면 성 2글자 모두 포함)
+function scoreEumyang(seongStrokesArr, chars) {
+  const par = [...seongStrokesArr, ...chars.map((c) => c.strokes)].map((n) => n % 2);
   const allSame = par.every((p) => p === par[0]);
-  return allSame ? 35 : 100; // 3글자는 3:0(쏠림) 또는 2:1(조화) 두 경우
+  return allSame ? 35 : 100;
 }
 
 // 6) 발음편의
@@ -123,16 +123,23 @@ function scoreName(saju, surname, chars) {
   const firstH = duum(chars[0].hangul); // 첫 글자 두음법칙
   const restH = chars.slice(1).map((c) => c.hangul);
   const nameHangul = firstH + restH.join('');
-  const gyeok = window.Sugri.computeGyeok(surname.strokes, chars[0].strokes, chars[1].strokes);
-  const evalEum = window.Eum.evaluate([surname.hangul, firstH, ...restH]);
+  // 복성(2글자 성)이면 surname.parts 사용, 아니면 단성 1글자로 취급
+  const sParts = surname.parts && surname.parts.length
+    ? surname.parts
+    : [{ hangul: surname.hangul, strokes: surname.strokes }];
+  const sStrokesArr = sParts.map((p) => p.strokes);
+  const sHangulArr = sParts.map((p) => p.hangul);
+  const sLastHangul = sHangulArr[sHangulArr.length - 1]; // 이름 첫 글자와 인접한 성 글자
+  const gyeok = window.Sugri.computeGyeokMulti(sStrokesArr, [chars[0].strokes, chars[1].strokes]);
+  const evalEum = window.Eum.evaluate([...sHangulArr, firstH, ...restH]);
 
   const axes = {
     saju: scoreSaju(saju, chars),
     sugri: scoreSugri(gyeok),
     eum: scoreEum(evalEum),
     jawon: scoreJawon(chars),
-    eumyang: scoreEumyang(surname.strokes, chars),
-    call: scoreCall(surname.hangul, nameHangul),
+    eumyang: scoreEumyang(sStrokesArr, chars),
+    call: scoreCall(sLastHangul, nameHangul),
   };
   let raw = 0;
   for (const k in WEIGHTS) raw += axes[k] * WEIGHTS[k];
@@ -215,23 +222,24 @@ function suggest(saju, surname, pool, opt = {}) {
 const WEIGHTS_HANGUL = { eum: 35, sugri: 25, eumyang: 20, call: 20 };
 function scoreNameHangul(surnameHangul, nameHangul) {
   const HS = window.HangulStroke;
-  const sStroke = HS.syllable(surnameHangul);
+  const sSyl = [...surnameHangul];                       // 복성이면 2글자
+  const sStrokesArr = sSyl.map((h) => HS.syllable(h));
   const chars = [...nameHangul].map((h) => ({ hangul: h, strokes: HS.syllable(h) }));
   const c0 = chars[0] ? chars[0].strokes : 0;
   const c1 = chars[1] ? chars[1].strokes : 0;
-  const gyeok = window.Sugri.computeGyeok(sStroke, c0, c1);
-  const evalEum = window.Eum.evaluate([surnameHangul, ...chars.map((c) => c.hangul)]);
+  const gyeok = window.Sugri.computeGyeokMulti(sStrokesArr, [c0, c1]);
+  const evalEum = window.Eum.evaluate([...sSyl, ...chars.map((c) => c.hangul)]);
   const axes = {
     eum: scoreEum(evalEum),
     sugri: scoreSugri(gyeok),
-    eumyang: scoreEumyang(sStroke, chars),
-    call: scoreCall(surnameHangul, nameHangul),
+    eumyang: scoreEumyang(sStrokesArr, chars),
+    call: scoreCall(sSyl[sSyl.length - 1], nameHangul),
   };
   let raw = 0; for (const k in WEIGHTS_HANGUL) raw += axes[k] * WEIGHTS_HANGUL[k];
   raw /= 100;
   return {
     hangul: surnameHangul + nameHangul, hanja: '',
-    strokes: { surname: sStroke, chars: chars.map((c) => c.strokes) },
+    strokes: { surname: sStrokesArr, chars: chars.map((c) => c.strokes) },
     axes, total: Math.round(raw), totalRaw: Math.round(raw * 100) / 100,
     gyeok, evalEum, hangulOnly: true,
   };
