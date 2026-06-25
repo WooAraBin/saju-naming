@@ -18,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 // 출생 도시 → 경도 (지방시 보정 자동). '해외·모름'은 보정 안 함.
 const CITY = {
   '서울': 126.98, '인천': 126.70, '수원': 127.03, '성남': 127.13, '용인': 127.18,
+  '일산': 126.77, '산본': 126.93,
   '춘천': 127.73, '강릉': 128.90, '청주': 127.49, '세종': 127.29, '대전': 127.38,
   '천안': 127.15, '전주': 127.15, '광주': 126.85, '목포': 126.39, '여수': 127.66,
   '순천': 127.49, '대구': 128.60, '안동': 128.73, '포항': 129.36, '경주': 129.22,
@@ -26,7 +27,13 @@ const CITY = {
   '해외·모름': null,
 };
 function populateCity() {
-  $('city').innerHTML = Object.keys(CITY).map((c) => `<option value="${c}">${c}</option>`).join('');
+  // 가나다 순 정렬, '해외·모름'은 항상 맨 끝
+  const names = Object.keys(CITY).sort((a, b) => {
+    if (a === '해외·모름') return 1;
+    if (b === '해외·모름') return -1;
+    return a.localeCompare(b, 'ko');
+  });
+  $('city').innerHTML = names.map((c) => `<option value="${c}">${c}</option>`).join('');
   $('city').value = '서울';
 }
 // 공용 출생정보 → computeSaju 입력
