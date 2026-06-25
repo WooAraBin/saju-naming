@@ -543,6 +543,78 @@ function scoreMyName() {
   explainAI(r);
 }
 
+/* ---------- 결과 이미지 저장 ---------- */
+// 클론에 canvas는 png img로 치환(cloneNode는 비트맵 복사 안 됨)
+function cloneWithCanvas(node) {
+  const clone = node.cloneNode(true);
+  clone.querySelectorAll('button').forEach((b) => b.remove()); // 캡처에 버튼 제외
+  const orig = node.querySelectorAll('canvas');
+  const cloned = clone.querySelectorAll('canvas');
+  orig.forEach((oc, i) => {
+    const img = document.createElement('img');
+    img.src = oc.toDataURL('image/png');
+    img.style.cssText = oc.style.cssText;
+    img.style.width = (oc.style.width || oc.width + 'px');
+    img.style.height = (oc.style.height || oc.height + 'px');
+    if (cloned[i]) cloned[i].replaceWith(img);
+  });
+  return clone;
+}
+
+async function saveReportImage() {
+  if (typeof html2canvas === 'undefined') { alert('이미지 라이브러리 로드 실패 — 잠시 후 다시 시도하세요.'); return; }
+  // 화면에 떠있는(생성된) 결과 블록만 수집
+  const sections = [];
+  const add = (title, el, on) => { if (el && on) sections.push([title, el]); };
+  add('🔮 사주풀이', $('usResult'), $('usResult') && !$('usResult').classList.contains('hidden'));
+  add('📷 관상', $('us-gwansang'), $('us-gwansang') && $('us-gwansang').textContent.trim());
+  add('📊 내 이름 점수', $('mnResult'), $('mnResult') && !$('mnResult').classList.contains('hidden'));
+  add('✨ 작명 추천', $('result-card'), $('result-card') && !$('result-card').classList.contains('hidden'));
+  if (!sections.length) { alert('저장할 결과가 없습니다. 먼저 분석을 실행해 주세요.'); return; }
+
+  const btn = $('saveImgBtn');
+  const label = btn.textContent; btn.disabled = true; btn.textContent = '이미지 생성 중...';
+  // 캡처 전용 컨테이너(화면 밖)
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:720px;background:#fff;color:#222;padding:28px;box-sizing:border-box;font-family:inherit';
+  const seong = ($('mnSeong').value || '').trim();
+  const name = ($('mnName').value || '').trim();
+  const head = document.createElement('div');
+  head.style.cssText = 'border-bottom:2px solid #8b5e34;padding-bottom:10px;margin-bottom:18px';
+  head.innerHTML = `<div style="font-size:22px;font-weight:700;color:#8b5e34">🔮 사주풀이 · 관상 · 작명 결과</div>` +
+    `<div style="font-size:14px;color:#555;margin-top:4px">${(seong + name) || ''} ${$('birthdate').value ? '· ' + $('birthdate').value : ''} · ${new Date().toLocaleDateString('ko-KR')}</div>`;
+  wrap.appendChild(head);
+  for (const [title, el] of sections) {
+    const block = document.createElement('div');
+    block.style.cssText = 'margin-bottom:22px';
+    const h = document.createElement('div');
+    h.style.cssText = 'font-size:17px;font-weight:700;margin:0 0 8px;color:#5a3d22';
+    h.textContent = title;
+    block.appendChild(h);
+    block.appendChild(cloneWithCanvas(el));
+    wrap.appendChild(block);
+  }
+  const foot = document.createElement('div');
+  foot.style.cssText = 'border-top:1px solid #ddd;padding-top:8px;margin-top:6px;font-size:11px;color:#999';
+  foot.textContent = '※ 통용 명리·성명학 기반 참고용 · naming-app-five.vercel.app';
+  wrap.appendChild(foot);
+  document.body.appendChild(wrap);
+
+  try {
+    const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    const a = document.createElement('a');
+    const tag = (seong + name) || 'saju';
+    a.download = `${tag}_사주작명_${new Date().toISOString().slice(0, 10)}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  } catch (e) {
+    alert('이미지 생성 실패: ' + (e.message || e));
+  } finally {
+    document.body.removeChild(wrap);
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   populateCity();
   $('dataStatus').textContent = '데이터 불러오는 중...';
@@ -555,4 +627,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('mnBtn').addEventListener('click', scoreMyName);
   $('mnSeong').addEventListener('input', mnPopulateSeong);
   $('mnName').addEventListener('input', mnPopulateName);
+  $('saveImgBtn').addEventListener('click', saveReportImage);
 });
