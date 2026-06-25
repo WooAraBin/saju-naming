@@ -41,11 +41,13 @@ function getBirth() {
   const [y, m, d] = ($('birthdate').value || '').split('-').map(Number);
   const [hh, mm] = ($('birthtime').value || '').split(':').map(Number);
   const city = $('city').value, lon = CITY[city];
+  const timeUnknown = !!($('timeUnknown') && $('timeUnknown').checked);
   return {
     year: y, month: m, day: d, hour: hh, minute: mm,
     lon: lon == null ? 127.0 : lon,
-    applyLocalTime: lon != null, // 도시 알면 보정, 해외/모름이면 미보정
+    applyLocalTime: lon != null && !timeUnknown, // 도시 알면 보정, 해외/모름·시간모름이면 미보정
     gender: $('gender').value,
+    timeUnknown,
   };
 }
 
@@ -94,7 +96,9 @@ function sajuPillarsHtml(saju) {
   const sip = (saju.sip && saju.sip.pillars) || {};
   const dt = saju.detail || {};
   const GW = window.Saju.GAN_WX, ZW = window.Saju.ZHI_WX;
-  const gan = (p) => saju.pillars[p][0], zhi = (p) => saju.pillars[p][1];
+  // 시간 모름이면 pillars.time === null → 시주 칸 '미상' 표기
+  const gan = (p) => (saju.pillars[p] ? saju.pillars[p][0] : '미상');
+  const zhi = (p) => (saju.pillars[p] ? saju.pillars[p][1] : '');
   const row = (label, fn) => `<tr><th>${label}</th>${ps.map((p) => `<td>${fn(p)}</td>`).join('')}</tr>`;
   return `<table class="saju-table">
     <thead><tr><th></th>${ps.map((p) => `<th>${KO[p]}</th>`).join('')}</tr></thead>
@@ -122,15 +126,16 @@ function sajuSummaryHtml(saju, forNaming) {
     (sipStr ? `<span class="muted">십신 분포: ${sipStr}</span><br>` : '') +
     (dw ? `<span class="muted">현재 대운: ${dw.ganzhi} (${dw.sipsin}, ${dw.startAge}세~)</span><br>` : '') +
     (sw ? `<span class="muted">올해(${sw.year}) 세운: ${sw.ganzhi} (${sw.sipsin})</span>` : '') +
-    (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분</span>` : '');
+    (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분</span>` : '') +
+    (saju.timeUnknown ? `<br><span class="muted">※ 출생시각 미상 — 시주(時柱)를 제외하고 분석했습니다(시간 관련 해석은 참고만).</span>` : '');
 }
 function sajuPrompt(saju, forNaming) {
   const gc = (saju.sip && saju.sip.groupCount) || {};
   const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k}${gc[k]}`).join(', ');
   const dw = saju.daewoon, sw = saju.sewoon;
   return `너는 한국 사주명리 전문가다. 아래 사주를 ${forNaming ? '6~9' : '8~12'}문장으로 깊이 있게, 따뜻하게 풀어줘.
-타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤.${forNaming ? ' 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.' : ' 직업·재물·관계·건강 흐름도 짚어줘.'}
-사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
+타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤.${forNaming ? ' 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.' : ' 직업·재물·관계·건강 흐름도 짚어줘.'}${saju.timeUnknown ? ' (출생시각 미상 — 시주는 제외하고 풀이, 시간 관련 단정은 피할 것)' : ''}
+사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.timeUnknown ? '시주미상' : saju.pillars.time}
 일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 십신 분포: ${sipStr}
@@ -151,15 +156,17 @@ async function explainSajuInto(elId, saju, forNaming) {
 // 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이
 function deepPrompt(saju) {
   const p = saju.pillars, sp = saju.sip.pillars, dt = saju.detail || {};
+  const tu = saju.timeUnknown;
+  const pKeys = tu ? ['year', 'month', 'day'] : ['year', 'month', 'day', 'time'];
   const sipLine = `연주 천간 ${p.year[0]}=${sp.year.gan} / 지지 ${p.year[1]}=${sp.year.zhi}, ` +
     `월주 천간 ${p.month[0]}=${sp.month.gan} / 지지 ${p.month[1]}=${sp.month.zhi}, ` +
-    `일주 천간 ${p.day[0]}=일간 / 지지 ${p.day[1]}=${sp.day.zhi}, ` +
-    `시주 천간 ${p.time[0]}=${sp.time.gan} / 지지 ${p.time[1]}=${sp.time.zhi}`;
-  const hide = ['year', 'month', 'day', 'time'].map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
+    `일주 천간 ${p.day[0]}=일간 / 지지 ${p.day[1]}=${sp.day.zhi}` +
+    (tu ? '' : `, 시주 천간 ${p.time[0]}=${sp.time.gan} / 지지 ${p.time[1]}=${sp.time.zhi}`);
+  const hide = pKeys.map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
   const dwList = (saju.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
   const dw = saju.daewoon, sw = saju.sewoon;
   return `너는 한국 최고의 사주명리 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
-반드시 아래 구조의 마크다운으로(## 제목, **굵게**, - 글머리), 단정적 운세는 피하고 '~일 수 있어요/~한 편이에요' 톤으로, 따뜻하지만 디테일하게.
+반드시 아래 구조의 마크다운으로(## 제목, **굵게**, - 글머리), 단정적 운세는 피하고 '~일 수 있어요/~한 편이에요' 톤으로, 따뜻하지만 디테일하게.${tu ? '\n(출생시각 미상 — 시주는 데이터에서 제외됨. 시주·시간 기반 해석은 하지 말고, 연·월·일 세 기둥만으로 풀이하라.)' : ''}
 
 ## 사주 원국
 - 팔자와 일간(${saju.dayGan}${saju.dayWx})의 물상(物象)·기질을 그림 그리듯 설명
@@ -189,7 +196,7 @@ function deepPrompt(saju) {
 - 직업·재물·관계·건강을 한 단락씩
 
 [사주 데이터]
-사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day} / 시 ${p.time}
+사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day}${tu ? ' / 시 미상' : ` / 시 ${p.time}`}
 일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}, ${saju.tti}띠
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 십신 배치: ${sipLine}
@@ -289,7 +296,7 @@ async function gwansangReading() {
 - 사주와 관상이 일치하는 점 / 보완하는 점, 그리고 조언 2~3줄
 
 [사주]
-사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.pillars.time}
+사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.timeUnknown ? '시주미상' : saju.pillars.time}
 일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}, ${saju.tti}띠
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 용신/보충오행: ${saju.target.join(', ')}
@@ -641,4 +648,5 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('mnSeong').addEventListener('input', mnPopulateSeong);
   $('mnName').addEventListener('input', mnPopulateName);
   $('saveImgBtn').addEventListener('click', saveReportImage);
+  $('timeUnknown').addEventListener('change', (e) => { $('birthtime').disabled = e.target.checked; });
 });

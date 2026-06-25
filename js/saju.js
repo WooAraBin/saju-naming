@@ -73,10 +73,13 @@ function localTimeOffsetMin(lon) {
  * @returns {object} 사주 결과
  */
 function computeSaju(opt) {
-  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true, gender = 'M' } = opt;
+  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true, gender = 'M', timeUnknown = false } = opt;
+  // 출생시각 모름: 정오(午, 12:00)로 팔자 계산하되 시주는 분석에서 제외(아래 parts). 정오는 자시 일자경계를 넘지 않아 일주가 안전.
+  const hourEff = timeUnknown ? 12 : hour;
+  const minuteEff = timeUnknown ? 0 : minute;
 
   // 1) 지방시 보정 — 입력 시각에서 보정 분을 가감
-  let adj = new Date(year, month - 1, day, hour, minute, 0);
+  let adj = new Date(year, month - 1, day, hourEff, minuteEff, 0);
   let offsetMin = 0;
   if (applyLocalTime) {
     offsetMin = localTimeOffsetMin(lon); // 양수면 표준시가 빠름 → 빼줌
@@ -97,14 +100,16 @@ function computeSaju(opt) {
     day: ec.getDay(),
     time: ec.getTime(),
   };
+  // 시간 모름이면 시주를 모든 집계(오행·십신·상세)에서 제외
+  const parts = timeUnknown ? ['year', 'month', 'day'] : ['year', 'month', 'day', 'time'];
 
   const dayGan = pillars.day[0];       // 일간(日干) = 본인
   const dayWx = GAN_WX[dayGan];        // 일간 오행
 
-  // 3) 오행 분포 (천간4 + 지지4 = 8글자). 월지(월령)는 가중치 +1.
+  // 3) 오행 분포 (천간 + 지지). 월지(월령)는 가중치 +1.
   const count = { 목: 0, 화: 0, 토: 0, 금: 0, 수: 0 };
   const add = (o, w = 1) => { if (o) count[o] += w; };
-  ['year', 'month', 'day', 'time'].forEach((p) => {
+  parts.forEach((p) => {
     add(GAN_WX[pillars[p][0]]);
     add(ZHI_WX[pillars[p][1]]);
   });
@@ -140,7 +145,7 @@ function computeSaju(opt) {
 
   // 8) 십신(十神) — 각 기둥 천간 + 지지 본기
   const sip = { pillars: {}, groupCount: { 비겁:0, 식상:0, 재성:0, 관성:0, 인성:0 } };
-  ['year', 'month', 'day', 'time'].forEach((p) => {
+  parts.forEach((p) => {
     const g = (p === 'day') ? '일간' : sipsin(dayGan, pillars[p][0]);
     const z = sipsin(dayGan, ZHI_HIDDEN[pillars[p][1]]);
     sip.pillars[p] = { gan: g, zhi: z };
@@ -180,7 +185,7 @@ function computeSaju(opt) {
   let tti = '';
   try {
     const PMAP = { year: 'Year', month: 'Month', day: 'Day', time: 'Time' };
-    ['year', 'month', 'day', 'time'].forEach((p) => {
+    parts.forEach((p) => {
       const P = PMAP[p];
       const ds = ec['get' + P + 'DiShi'] ? ec['get' + P + 'DiShi']() : '';
       detail[p] = {
@@ -194,9 +199,11 @@ function computeSaju(opt) {
     tti = TTI[sx] || sx;
   } catch (e) {}
 
+  if (timeUnknown) pillars.time = null; // 시주 미상 표기
+
   return {
     sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
-    detail, tti,
+    detail, tti, timeUnknown,
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
     offsetMin,
