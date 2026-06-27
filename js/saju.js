@@ -143,13 +143,18 @@ function localTimeOffsetMin(lon) {
  * @returns {object} 사주 결과
  */
 function computeSaju(opt) {
-  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true, gender = 'M', timeUnknown = false } = opt;
+  const { year, month, day, hour, minute = 0, lon = 127.0, applyLocalTime = true, gender = 'M', timeUnknown = false, isLunar = false, isLeap = false } = opt;
+  // 0) 음력 입력이면 양력으로 변환 (윤달 = 음수 월)
+  let sy = year, sm = month, sd = day;
+  if (isLunar) {
+    try { const so = Lunar.fromYmd(year, isLeap ? -month : month, day).getSolar(); sy = so.getYear(); sm = so.getMonth(); sd = so.getDay(); } catch (e) {}
+  }
   // 출생시각 모름: 정오(午, 12:00)로 팔자 계산하되 시주는 분석에서 제외(아래 parts). 정오는 자시 일자경계를 넘지 않아 일주가 안전.
   const hourEff = timeUnknown ? 12 : hour;
   const minuteEff = timeUnknown ? 0 : minute;
 
   // 1) 지방시 보정 — 입력 시각에서 보정 분을 가감
-  let adj = new Date(year, month - 1, day, hourEff, minuteEff, 0);
+  let adj = new Date(sy, sm - 1, sd, hourEff, minuteEff, 0);
   let offsetMin = 0;
   if (applyLocalTime) {
     offsetMin = localTimeOffsetMin(lon); // 양수면 표준시가 빠름 → 빼줌
