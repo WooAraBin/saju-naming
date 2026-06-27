@@ -36,6 +36,8 @@ const COMMON_SYLL = new Set((
   '자 잔 재 정 제 조 종 주 준 중 지 진 찬 창 채 천 철 청 초 최 추 춘 충 치 ' +
   '태 택 하 한 함 해 향 헌 혁 현 형 혜 호 홍 화 환 회 효 후 휘 희 빛 늘 ').trim().split(/\s+/)
 );
+// 흔한 작명 음절인지 (두음법칙 포함) — 자연스러움 결정적 판정용
+function isCommonSyll(h) { return COMMON_SYLL.has(h) || COMMON_SYLL.has(duum(h)); }
 
 // 이름에 거의 안 쓰는 한자(숫자·문법·부정·불쾌) — 추천에서 제외
 const EXCLUDE_HANJA = new Set((
@@ -245,4 +247,4 @@ function scoreNameHangul(surnameHangul, nameHangul) {
   };
 }
 
-window.Naming = { scoreName, scoreNameHangul, suggest, WEIGHTS, WEIGHTS_HANGUL };
+window.Naming = { scoreName, scoreNameHangul, suggest, WEIGHTS, WEIGHTS_HANGUL, isCommonSyll };

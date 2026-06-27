@@ -494,31 +494,37 @@ function strengthTip(r, saju) {
   }
   return parts.slice(0, 2).join(', ');
 }
-// 후보 이름(한글)만 Gemini에 던져 자연스러움 점수를 받고, 기존 명리점수와 합산해 재정렬
+// 자연스러움 — 결정적 로컬 점수 (Gemini 비결정성 제거: 같은 이름 = 항상 같은 점수)
+function localNat(r) {
+  const ic = window.Naming.isCommonSyll;
+  const a = ic(r.chars[0].hangul), b = ic(r.chars[1].hangul);
+  let s = (a && b) ? 90 : (a || b) ? 70 : 50;       // 둘 다 흔함 / 하나 / 없음
+  if (r.chars[0].hangul === r.chars[1].hangul) s -= 8; // 같은 음절 반복(민민 등)
+  if ((r.axes && r.axes.eumyang) >= 80) s += 4;        // 음양 균형 가점
+  if ((r.axes && r.axes.eum) >= 80) s += 3;            // 발음오행 가점
+  return Math.max(0, Math.min(100, s));
+}
+// 후보 점수 확정(자연스러움=로컬 결정적) + Gemini는 강점 한 줄(tip)만 생성
 async function scoreAndRank(cands, gender, seong, saju) {
   const g = (gender === 'F') ? '여자' : '남자';
   const need = (saju.target || []).join('·');
   const list = cands.map((r, i) => `${i + 1}. ${seong}${r.hangul} (${r.hanja})`).join('\n');
+  cands.forEach((r) => { r.baseTotal = r.total; r.axes.nature = localNat(r); });
   const prompt = `다음은 사주에 맞춰 만든 ${g} 이름 후보다(한글·한자). 이 사주는 ${need} 오행을 보충하면 좋다.
-각 후보에 대해 두 가지를 매겨라.
-[nat] 한자·뜻·사주는 전부 무시하고, 오직 소리 내어 불렀을 때의 어감만으로 자연스러움 0~100점(짜게).
-  - 흔하고 자연스러운 이름 85~100 / 다소 낯선 이름 60~84 / 단어처럼 어색한 조합(겸단·계로·담운·결단 류) 0~40
-[tip] 이 이름의 강점 한 줄. 두 한자 글자의 뜻·이미지를 풀어 그 이름이 주는 인상을 표현하라(예: "넓을 浩·뜻 志 — 큰 포부와 너른 마음"). 발음·어감은 절대 언급 금지. 후보마다 서로 다르게. '금·수를 보충한다' 같은 사주 문구는 정말 두드러질 때만 가끔, 매번 붙이지 마라.
-반드시 JSON 배열로만: [{"no":1,"nat":92,"tip":"맑을 瑞·고울 娟 — 단정하고 귀한 인상"}]
+각 후보의 강점을 한 줄(tip)로 써라. 두 한자 글자의 뜻·이미지를 풀어 그 이름이 주는 인상을 표현하라(예: "넓을 浩·뜻 志 — 큰 포부와 너른 마음"). 발음·어감은 절대 언급 금지. 후보마다 서로 다르게. '금·수를 보충한다' 같은 사주 문구는 정말 두드러질 때만 가끔.
+반드시 JSON 배열로만: [{"no":1,"tip":"맑을 瑞·고울 娟 — 단정하고 귀한 인상"}]
 이름:
 ${list}`;
-  cands.forEach((r) => { r.baseTotal = r.total; });
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const j = await resp.json();
     const m = (j.text || '').replace(/```json|```/g, '').match(/\[[\s\S]*\]/);
     if (m) JSON.parse(m[0]).forEach((o) => {
       const r = cands[(o.no | 0) - 1];
-      if (r) { r.axes.nature = Math.max(0, Math.min(100, o.nat | 0)); if (o.tip) r.tip = String(o.tip); }
+      if (r && o.tip) r.tip = String(o.tip);
     });
   } catch (e) {}
   cands.forEach((r) => {
-    if (r.axes.nature == null) r.axes.nature = 55; // 평가 누락 시 중립값
     r.total = Math.round(r.baseTotal * (1 - NATURE_W) + r.axes.nature * NATURE_W);
     if (!r.tip) r.tip = strengthTip(r, saju); // Gemini tip 누락 시 로컬 강점
   });
