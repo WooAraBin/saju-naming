@@ -129,28 +129,78 @@ function sajuSummaryHtml(saju, forNaming) {
     (saju.offsetMin ? `<br><span class="muted">지방시 보정 ${saju.offsetMin}분</span>` : '') +
     (saju.timeUnknown ? `<br><span class="muted">※ 출생시각 미상 — 시주(時柱)를 제외하고 분석했습니다(시간 관련 해석은 참고만).</span>` : '');
 }
-function sajuPrompt(saju, forNaming) {
+// 합충/신살을 프롬프트용 텍스트로 정리
+function relLines(saju) {
+  const g = saju.ganRel || {}, j = saju.jiRel || {}, gan = [], ji = [];
+  if (g.hap && g.hap.length) gan.push('천간합 ' + g.hap.join(', '));
+  if (g.chung && g.chung.length) gan.push('천간충 ' + g.chung.join(', '));
+  const push = (label, arr) => { if (arr && arr.length) ji.push(label + ' ' + arr.join(', ')); };
+  push('육합', j.yukhap); push('삼합', j.samhap); push('반합', j.banhap); push('방합', j.banghap);
+  push('충', j.chung); push('형', j.hyeong); push('파', j.pa); push('해', j.hae);
+  return {
+    gan: gan.length ? gan.join(' / ') : '없음',
+    ji: ji.length ? ji.join(' / ') : '없음',
+    sinsal: (saju.sinsal && saju.sinsal.length) ? saju.sinsal.join(', ') : '없음',
+  };
+}
+// 데이터 블록(프롬프트 공통) — 만세력 전 항목 + 합충 + 신살
+function sajuDataBlock(saju) {
   const gc = (saju.sip && saju.sip.groupCount) || {};
   const sipStr = Object.keys(gc).filter((k) => gc[k]).map((k) => `${k}${gc[k]}`).join(', ');
-  const dw = saju.daewoon, sw = saju.sewoon;
-  return `너는 한국 사주명리 전문가다. 아래 사주를 ${forNaming ? '6~9' : '8~12'}문장으로 깊이 있게, 따뜻하게 풀어줘.
-타고난 성향(일간·오행), 강약과 용신의 의미, 십신 분포가 말하는 성격/적성, 현재 대운과 올해 세운의 흐름을 유기적으로 연결할 것. 단정적 운세는 피하고 '~일 수 있어요' 톤.${forNaming ? ' 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급.' : ' 직업·재물·관계·건강 흐름도 짚어줘.'}${saju.timeUnknown ? ' (출생시각 미상 — 시주는 제외하고 풀이, 시간 관련 단정은 피할 것)' : ''}
-사주팔자: ${saju.pillars.year} ${saju.pillars.month} ${saju.pillars.day} ${saju.timeUnknown ? '시주미상' : saju.pillars.time}
-일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}
-오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
+  const dw = saju.daewoon, sw = saju.sewoon, R = relLines(saju), p = saju.pillars, dt = saju.detail || {};
+  const tu = saju.timeUnknown;
+  const pKeys = tu ? ['year', 'month', 'day'] : ['year', 'month', 'day', 'time'];
+  const hide = pKeys.map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'}${p[k][1]}=${(dt[k] || {}).hideGan || ''}`).join(', ');
+  return `사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day}${tu ? ' / 시주 미상' : ' / 시 ' + p.time}
+일간(나): ${saju.dayGan}(${saju.dayWx}) · ${saju.isStrong ? '신강' : '신약'} · ${saju.tti}띠 · ${saju.gender === 'F' ? '여성' : '남성'}${tu ? ' · 출생시각 미상(시주 제외)' : ''}
+오행 개수: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 십신 분포: ${sipStr}
+지장간(여기·중기·정기): ${hide}
+천간 관계: ${R.gan}
+지지 관계: ${R.ji}
+신살: ${R.sinsal}
 용신/보충오행: ${saju.target.join(', ')}
 ${dw ? `현재 대운: ${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : ''}
 ${sw ? `올해 세운: ${sw.year} ${sw.ganzhi}(${sw.sipsin})` : ''}`;
 }
+function sajuPrompt(saju, forNaming) {
+  if (forNaming) {
+    return `너는 한국 사주명리 전문가다. 아래 사주를 6~9문장으로 깊이 있게, 따뜻하게 풀어줘.
+타고난 성향(일간·오행), 강약과 용신, 십신이 말하는 성격/적성을 유기적으로 연결하고, 마지막에 이름에 보충하면 좋은 오행을 자연스럽게 언급. 단정적 운세는 피하고 '~일 수 있어요' 톤.
+${sajuDataBlock(saju)}`;
+  }
+  return `너는 20년 경력의 자평명리 상담가이자, MZ 감성 카피라이터다. 아래 사주를 정확한 명리 해석 위에 위트 있게 풀어, 사람들이 빠져드는 "캐릭터 분석 리포트"로 써라.
+
+[작성 규칙]
+1. 먼저 일간(${saju.dayGan}${saju.dayWx})과 오행 분포를 하나의 **캐릭터/물상 비유**로 의인화하고, 그 비유를 글 전체에서 일관되게 유지한다.
+2. 아래 순서로 **마크다운 섹션**을 만든다. 각 섹션 제목(##)은 반드시 신조어·밈·구어로 후킹하게(예: "답정너에 고구마 한 스푼", "월급루팡은 내 길이 아니야"). 명리 용어를 제목에 직접 노출하지 말 것.
+   ## (대표 한 줄 비유 — 이 사람을 한마디로)
+   ## 용신 — 이 사람에게 가장 필요한 기운
+   ## 타고난 성격
+   ## 숨은 약점·자기함정
+   ## 빛나는 강점
+   ## 직업·적성
+   ## 재물 그릇
+   ## 연애·배우자
+   ## 부모·가족(육친)
+   ## 대인관계
+   ## 방향·풍수(부족 오행 → 방위/지역)
+   ## 마무리 응원
+3. 각 섹션 본문은 2문단. **1문단**=구어체로 공감·캐릭터 묘사. **2문단**=반드시 아래 데이터의 구체 근거(간지·십신 한자병기 예 '편인(偏印)', 신살, 'OO충/반합/자형')를 인용해 왜 그런지 설명하고, 이어서 행동 처방을 준다.
+4. 톤: 단정+긍정, 재치. 불행·질병·사망 단정 금지. 방향 섹션은 부족 오행을 방위와 실제 지역(국내/해외)으로 구체화. 마지막은 응원으로 끝낸다.
+5. 아래 [사주 데이터]에 주어진 사실만 근거로 쓴다. 없는 합충·신살을 지어내지 말 것.
+
+[사주 데이터]
+${sajuDataBlock(saju)}`;
+}
 async function explainSajuInto(elId, saju, forNaming) {
   const el = $(elId); if (!el) return;
-  el.textContent = '🔮 사주 해설 생성 중...';
+  el.innerHTML = '<p>🔮 사주 해설 생성 중… (10~30초)</p>';
   try {
     const resp = await fetch('/api/explain', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: sajuPrompt(saju, forNaming) }) });
     const j = await resp.json();
-    el.textContent = j.text ? '🔮 ' + j.text : '';
-  } catch (e) { el.textContent = ''; }
+    el.innerHTML = j.text ? mdLite(j.text) : '';
+  } catch (e) { el.innerHTML = ''; }
 }
 
 // 심층 분석 프롬프트 — 만세력 전 데이터 투입, 항목별 깊은 풀이
@@ -164,8 +214,8 @@ function deepPrompt(saju) {
     (tu ? '' : `, 시주 천간 ${p.time[0]}=${sp.time.gan} / 지지 ${p.time[1]}=${sp.time.zhi}`);
   const hide = pKeys.map((k) => `${k === 'year' ? '연' : k === 'month' ? '월' : k === 'day' ? '일' : '시'} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
   const dwList = (saju.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
-  const dw = saju.daewoon, sw = saju.sewoon;
-  return `너는 한국 최고의 사주명리 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
+  const dw = saju.daewoon, sw = saju.sewoon, R = relLines(saju);
+  return `너는 한국 최고의 사주명리·타로 전문가다. 아래 한 사람의 사주를 매우 깊이 있게, 전문가가 직접 상담하듯 항목별로 길고 풍부하게 풀이해줘.
 반드시 아래 구조의 마크다운으로(## 제목, **굵게**, - 글머리), 단정적 운세는 피하고 '~일 수 있어요/~한 편이에요' 톤으로, 따뜻하지만 디테일하게.${tu ? '\n(출생시각 미상 — 시주는 데이터에서 제외됨. 시주·시간 기반 해석은 하지 말고, 연·월·일 세 기둥만으로 풀이하라.)' : ''}
 
 ## 사주 원국
@@ -180,8 +230,11 @@ function deepPrompt(saju) {
 ## 십신 배치 해석
 - 각 기둥 십신이 말하는 성향·적성·직업 코드
 
-## 지지 합충 관계
-- 삼합·육합·반합·충·형·해를 직접 찾아 의미 해석 (가장 중요한 충부터)
+## 천간·지지 관계 (합충형)
+- 아래 데이터의 '천간 관계'·'지지 관계'를 그대로 근거로, 각 합/충/형/반합이 삶에 주는 의미를 충→형→합 순으로 해석 (지어내지 말 것)
+
+## 신살 풀이
+- 아래 데이터의 신살을 하나씩, 길흉과 실제 발현을 구체적으로
 
 ## 상세 성격 분석
 - 2~4개 포인트로 입체적으로
@@ -200,7 +253,10 @@ function deepPrompt(saju) {
 일간: ${saju.dayGan}(${saju.dayWx}), ${saju.isStrong ? '신강' : '신약'}, ${saju.tti}띠
 오행 분포: ${window.Saju.WX_KO.map((o) => o + saju.count[o]).join(' ')}
 십신 배치: ${sipLine}
-지장간: ${hide}
+지장간(여기·중기·정기): ${hide}
+천간 관계: ${R.gan}
+지지 관계: ${R.ji}
+신살: ${R.sinsal}
 용신/보충오행: ${saju.target.join(', ')}
 대운 전체: ${dwList}
 현재 대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'}
