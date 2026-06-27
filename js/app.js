@@ -36,6 +36,18 @@ function populateCity() {
   $('city').innerHTML = names.map((c) => `<option value="${c}">${c}</option>`).join('');
   $('city').value = '서울';
 }
+// 음력 + 해당 연·월에 실제 윤달이 있을 때만 윤달 체크박스 노출 (양력엔 윤달 없음)
+function updateLeap() {
+  const wrap = $('birthLeapWrap'); if (!wrap) return;
+  const cal = ($('birthCal') && $('birthCal').value) || 'solar';
+  const [y, m] = ($('birthdate').value || '').split('-').map(Number);
+  let show = false;
+  if (cal === 'lunar' && y && m && window.LunarYear) {
+    try { show = window.LunarYear.fromYear(y).getLeapMonth() === m; } catch (e) {}
+  }
+  wrap.style.display = show ? 'inline-flex' : 'none';
+  if (!show && $('birthLeap')) $('birthLeap').checked = false;
+}
 // 공용 출생정보 → computeSaju 입력
 function getBirth() {
   const [y, m, d] = ($('birthdate').value || '').split('-').map(Number);
@@ -693,6 +705,7 @@ async function saveReportImage() {
 
 window.addEventListener('DOMContentLoaded', async () => {
   populateCity();
+  updateLeap();
   $('dataStatus').textContent = '데이터 불러오는 중...';
   await loadDictionary();
   $('usBtn').addEventListener('click', usAnalyze);

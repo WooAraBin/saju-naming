@@ -18,10 +18,10 @@
       <h2>출생 정보</h2>
       <div class="grid">
         <label>생년월일
-          <input id="birthdate" type="date" value="2024-01-01" />
+          <input id="birthdate" type="date" value="2024-01-01" onchange="updateLeap()" />
           <span class="chk" style="font-weight:400;font-size:13px;margin-top:4px;display:flex;gap:12px;align-items:center">
-            <select id="birthCal" style="font-size:13px;padding:2px 4px"><option value="solar">양력</option><option value="lunar">음력</option></select>
-            <label style="font-weight:400;display:inline-flex;align-items:center;gap:3px"><input type="checkbox" id="birthLeap" /> 윤달</label>
+            <select id="birthCal" style="font-size:13px;padding:2px 4px" onchange="updateLeap()"><option value="solar">양력</option><option value="lunar">음력</option></select>
+            <label id="birthLeapWrap" style="font-weight:400;display:none;align-items:center;gap:3px"><input type="checkbox" id="birthLeap" /> 윤달 <span style="color:var(--muted,#888);font-size:11px">(이 달에 윤달 있음)</span></label>
           </span>
         </label>
         <label>출생 시각
