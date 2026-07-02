@@ -1,0 +1,210 @@
+/* ============================================================
+   사주앱 디자인 시스템 — 라이트/모던 (경쟁사 점신 벤치마크)
+   ============================================================ */
+:root {
+  --bg: #F4F5F8;
+  --surface: #FFFFFF;
+  --surface-2: #F0F2F6;
+  --line: #EAECF1;
+  --ink: #16181F;
+  --ink-2: #565B6B;
+  --ink-3: #9AA0B0;
+  --primary: #4B7BF5;      /* 포인트 블루 */
+  --primary-soft: #EAF0FE;
+  --accent: #FFC94D;       /* 노랑 */
+  --accent-soft: #FFF6E0;
+  --danger: #FF6B6B;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 4px 20px rgba(20,24,40,.06);
+  --shadow-sm: 0 2px 8px rgba(20,24,40,.05);
+  /* 오행 색 */
+  --wx-mok: #4C9AFF;   /* 목 파랑 */
+  --wx-hwa: #FF6B6B;   /* 화 빨강 */
+  --wx-to: #FFC94D;    /* 토 노랑 */
+  --wx-geum: #E4E7EC;  /* 금 흰/회 */
+  --wx-su: #2B2F3A;    /* 수 검정 */
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+img { max-width: 100%; display: block; }
+
+/* 앱 컨테이너 (모바일 폭 고정, 데스크탑 가운데) */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+  padding-bottom: 78px; /* bottom nav */
+}
+
+/* ── 상단 바 ── */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  background: var(--bg);
+}
+.topbar .logo { font-size: 21px; font-weight: 900; letter-spacing: -.5px; }
+.topbar .logo .dot { color: var(--primary); }
+.topbar .spacer { flex: 1; }
+.credit-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; background: var(--surface);
+  border-radius: 20px; box-shadow: var(--shadow-sm);
+  font-weight: 800; font-size: 14px;
+}
+.credit-badge .plus { color: var(--ink-3); font-weight: 700; }
+
+/* ── 히어로 배너 ── */
+.hero {
+  margin: 4px 16px 18px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #EAF0FE, #DCE8FF);
+  padding: 20px;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.hero .txt { flex: 1; }
+.hero .kicker { font-size: 12px; color: var(--primary); font-weight: 800; }
+.hero h2 { margin: 6px 0 2px; font-size: 20px; font-weight: 900; letter-spacing: -.5px; }
+.hero p { margin: 0; font-size: 13px; color: var(--ink-2); }
+.hero .emoji { font-size: 54px; margin-left: 8px; }
+
+/* ── 퀵 필 ── */
+.quick-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding: 0 16px 16px; scrollbar-width: none;
+}
+.quick-row::-webkit-scrollbar { display: none; }
+.pill {
+  flex: 0 0 auto; padding: 10px 16px;
+  background: var(--surface); border-radius: 22px;
+  box-shadow: var(--shadow-sm); font-size: 13.5px; font-weight: 700;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+
+/* ── 섹션 ── */
+.section { padding: 0 16px 8px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 2px 12px; }
+.section-head h3 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -.5px; }
+.section-head .more { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+
+/* ── 기능 그리드 ── */
+.feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px 20px; }
+.feat-card {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 16px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 4px;
+  transition: transform .12s ease;
+}
+.feat-card:active { transform: scale(.97); }
+.feat-card .fc-emoji { font-size: 30px; }
+.feat-card .fc-title { font-size: 15.5px; font-weight: 800; margin-top: 6px; }
+.feat-card .fc-sub { font-size: 12px; color: var(--ink-3); }
+.feat-card .fc-badge {
+  align-self: flex-start; margin-top: 8px;
+  font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 7px;
+}
+.badge-ad { background: var(--primary-soft); color: var(--primary); }
+.badge-pay { background: var(--accent-soft); color: #B8860B; }
+
+/* ── 카드/버튼 공통 ── */
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 18px; margin: 0 16px 14px; }
+.btn {
+  width: 100%; padding: 15px; border-radius: 14px;
+  background: var(--primary); color: #fff; font-size: 15.5px; font-weight: 800;
+  box-shadow: 0 4px 14px rgba(75,123,245,.28);
+}
+.btn.dark { background: var(--ink); box-shadow: none; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); box-shadow: none; }
+.btn:active { transform: scale(.98); }
+
+/* ── 만세력: 오행 타일 ── */
+.wx-tile {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 12px;
+  font-size: 22px; font-weight: 900; color: #fff;
+}
+.wx-목 { background: var(--wx-mok); }
+.wx-화 { background: var(--wx-hwa); }
+.wx-토 { background: var(--wx-to); color: #6B5000; }
+.wx-금 { background: var(--wx-geum); color: #2B2F3A; }
+.wx-수 { background: var(--wx-su); }
+
+/* 만세력 표 */
+.saju-grid { display: grid; grid-template-columns: 56px repeat(4, 1fr); gap: 6px; align-items: center; }
+.saju-grid .rowlbl { font-size: 11px; color: var(--ink-3); font-weight: 700; }
+.saju-grid .colhead { text-align: center; font-size: 11px; color: var(--ink-3); font-weight: 700; }
+.saju-grid .cell { text-align: center; font-size: 12px; color: var(--ink-2); }
+.saju-grid .tilecell { display: flex; justify-content: center; }
+
+/* 탭 (만세력 섹션) */
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; padding: 9px 16px; border-radius: 20px;
+  background: var(--surface-2); font-size: 13.5px; font-weight: 700; color: var(--ink-2);
+}
+.tab.on { background: var(--ink); color: #fff; }
+
+/* 신강약 게이지 */
+.gauge-num { font-size: 44px; font-weight: 900; text-align: center; }
+.gauge-lbl { text-align: center; color: var(--ink-2); margin-top: -4px; }
+
+/* 오행 막대 */
+.wx-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.wx-bar-row .lbl { width: 42px; font-weight: 800; }
+.wx-bar { flex: 1; height: 10px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.wx-bar > span { display: block; height: 100%; border-radius: 6px; }
+.wx-bar-row .pct { width: 44px; text-align: right; font-size: 12px; color: var(--ink-3); }
+
+/* AI 결과 마크다운 */
+.md h2, .md .mdh { font-size: 16px; font-weight: 900; color: var(--primary); margin: 16px 0 6px; }
+.md p { margin: 0 0 8px; line-height: 1.75; }
+.md b { font-weight: 800; }
+
+/* 로딩 */
+.loading { text-align: center; color: var(--ink-3); padding: 24px; font-size: 14px; }
+.spinner { width: 22px; height: 22px; border: 3px solid var(--line); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── 하단 네비 ── */
+.bottom-nav {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 0;
+  width: 100%; max-width: 480px;
+  display: flex; background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index: 30;
+}
+.bottom-nav .nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--ink-3); font-weight: 600;
+}
+.bottom-nav .nav-item.on { color: var(--primary); }
+.bottom-nav .nav-item .ico { font-size: 20px; }
+
+/* 뷰 전환 */
+.view { display: none; }
+.view.on { display: block; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* 상세 헤더(뒤로가기) */
+.detail-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; position: sticky; top: 0; background: var(--bg); z-index: 15; }
+.detail-head .back { font-size: 22px; width: 32px; }
+.detail-head .title { font-size: 17px; font-weight: 800; }
+
+.hidden { display: none !important; }
+.muted { color: var(--ink-3); font-size: 12px; }
