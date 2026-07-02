@@ -66,11 +66,12 @@ function detailHead(title) {
   return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div></div>`;
 }
 // 생일 입력 기반 기능(사주 엔진 파생)
-const BIRTH_BTN = { saju: '사주 보기', daily: '오늘의 운세 보기', newyear: '올해 운세 보기', child: '자식 사주 보기', teen: '사춘기 분석 보기' };
+const BIRTH_BTN = { saju: '사주 보기', daily: '오늘의 운세 보기', child: '자식 사주 보기', teen: '사춘기 분석 보기' };
 const CHILD_SET = new Set(['child', 'teen']);
 
 function openFeature(id) {
   const f = featById(id);
+  if (id === 'newyear') return renderNewyearForm(f);
   if (BIRTH_BTN[id]) return renderBirthForm(id, f);
   if (id === 'face') return renderFaceForm(f);
   if (id === 'dream') return renderDreamForm(f);
@@ -171,6 +172,59 @@ function runDream() {
   const t = ($('fDream').value || '').trim(); if (!t) { alert('꿈 내용을 입력해주세요'); return; }
   $('sajuResult').innerHTML = aiLoading('해몽 중…');
   callAI(dreamPrompt(t));
+}
+
+// ── 신년운세 ──
+let nyChart = null;
+function renderNewyearForm() {
+  const y = new Date().getFullYear();
+  const years = [y, y + 1].map((yy) => `<option value="${yy}">${yy}년</option>`).join('');
+  $('view-reading').innerHTML = detailHead('신년운세') + birthFields(false) +
+    `<label style="font-size:13px;font-weight:700;color:var(--ink-2);display:block;margin-top:12px">운세 볼 해
+      <select id="nyYear" style="margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;width:130px;font-size:15px">${years}</select></label>
+     <button class="btn" style="margin-top:16px" onclick="runNewyear()">신년운세 보기</button></div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function runNewyear() {
+  const saju = getSaju(); if (!saju) return;
+  const year = parseInt($('nyYear').value) || new Date().getFullYear();
+  let yGz = ''; try { yGz = Solar.fromYmd(year, 6, 1).getLunar().getYearInGanZhi(); } catch (e) {}
+  const ysip = yGz ? window.Saju.sipsin(saju.dayGan, yGz[0]) : '';
+  $('sajuResult').innerHTML = aiLoading(`${year} 신년운세 생성 중… (10~30초)`);
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: newyearPrompt2(saju, year, yGz, ysip) }) })
+    .then((r) => r.json())
+    .then((j) => renderNewyearResult(j.text || '', year, yGz, ysip))
+    .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
+}
+function newyearPrompt2(s, year, yGz, ysip) {
+  return `너는 20년 경력 자평명리 상담가이자 MZ 카피라이터다. ${year}년 신년운세를 아래 사주로 깊이 있게, 위트 있게 써라. 마크다운.
+반드시 **첫 줄**에 아래 형식으로 5개 점수(0~100 정수)만 출력하고 줄바꿈:
+SCORES 총운=?? 재물=?? 애정=?? 직업=?? 건강=??
+그 다음 섹션(각 2문단, 세운·대운 간지·십신 근거 인용):
+## ${year}년 한줄 요약
+## 전체 흐름 (상반기 · 하반기)
+## 💰 재물운
+## ❤️ 애정·결혼운
+## 💼 직업·학업운
+## 🩺 건강운
+## ⚠️ 조심할 것 & 조언
+- 불행·질병·사망 단정 금지, '~할 수 있어요' 톤. 데이터에 없는 것 지어내지 말 것.
+[데이터] ${year} 세운 ${yGz}(${ysip}) / 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : '-'} / ${sajuLine(s)}`;
+}
+function renderNewyearResult(text, year, yGz, ysip) {
+  const m = text.match(/SCORES[^\n]*/i);
+  let sc = null;
+  if (m) { const g = (k) => { const r = m[0].match(new RegExp(k + '\\s*=\\s*(\\d+)')); return r ? +r[1] : null; }; sc = { 총운: g('총운'), 재물: g('재물'), 애정: g('애정'), 직업: g('직업'), 건강: g('건강') }; }
+  const body = text.replace(/SCORES[^\n]*\n?/i, '').trim();
+  const header = `<div class="card" style="background:linear-gradient(135deg,#EFEAFE,#E8F0FF)"><div style="font-weight:800;font-size:17px">🎊 ${year}년 신년운세</div><div class="muted" style="margin-top:2px">세운 ${yGz} (${ysip})</div></div>`;
+  const hasScore = sc && sc.총운 != null;
+  const radar = hasScore ? `<div class="card"><div style="text-align:center"><div style="font-size:12px;color:var(--ink-3)">올해 총운</div><div style="font-size:40px;font-weight:900;color:var(--primary)">${sc.총운}<span style="font-size:15px;color:var(--ink-3)">점</span></div></div><div style="max-width:280px;margin:4px auto"><canvas id="nyRadar" height="240"></canvas></div></div>` : '';
+  $('sajuResult').innerHTML = header + radar + `<div class="card md">${mdLite(body)}</div>`;
+  if (hasScore) {
+    const labels = ['총운', '재물', '애정', '직업', '건강'], data = labels.map((k) => sc[k] || 0);
+    if (nyChart) nyChart.destroy();
+    nyChart = new Chart($('nyRadar'), { type: 'radar', data: { labels, datasets: [{ data, fill: true, backgroundColor: 'rgba(124,107,231,.16)', borderColor: '#7C6BE7', pointBackgroundColor: '#7C6BE7' }] }, options: { scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }, plugins: { legend: { display: false } } } });
+  }
 }
 
 // ── 이름점수 (기존 naming.js 로직 이식) ──
@@ -505,4 +559,4 @@ function pwCheck() {
 }
 
 renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck, nPopSeong, nPopName, runName });
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck, nPopSeong, nPopName, runName, runNewyear });
