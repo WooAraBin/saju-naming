@@ -34,23 +34,32 @@ function renderNav() {
   $('bottomNav').innerHTML = items.map(([v, i, l]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${i}</div>${l}</div>`).join('');
 }
+const DONE = new Set(['saju']); // 실제 구현된 기능
+const TINTS = { saju: '#EAF0FE', couple: '#FDEBF1', child: '#FFF3E0', teen: '#E9F7EC', daily: '#FFF6DE', newyear: '#EFEAFE', moving: '#E8F4FE', dream: '#EDEBFB', face: '#FCEEE8', name: '#EAF6F3' };
 function renderHome() {
   const quick = ['📅 출석체크', '☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세'];
+  const grid = FEATURES.map((f) => {
+    const done = DONE.has(f.id);
+    return `<div class="icon-item" onclick="openFeature('${f.id}')">
+      <div class="icon-circle" style="background:${TINTS[f.id] || '#F0F2F6'}">${f.emoji}
+        <span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${done ? '구현' : '준비'}</span></div>
+      <div class="icon-title">${f.title}</div>
+    </div>`;
+  }).join('');
   $('view-home').innerHTML = `
     <div class="hero">
-      <div class="txt"><div class="kicker">오늘의 사주</div><h2>나를 읽는 시간</h2><p>생년월일시로 사주를 깊이 풀어드려요</p></div>
+      <div class="txt"><div class="kicker">🔮 오늘의 사주</div><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
       <div class="emoji">🔮</div>
     </div>
+    <div class="report-tabs"><div class="rtab on">운세보고서</div><div class="rtab">인맥보고서</div><div class="rtab">행운보고서</div></div>
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
-    <div class="section"><div class="section-head"><h3>운세 보기</h3></div></div>
-    <div class="feat-grid">
-      ${FEATURES.map((f) => `
-        <div class="feat-card" onclick="openFeature('${f.id}')">
-          <div class="fc-emoji">${f.emoji}</div>
-          <div class="fc-title">${f.title}</div>
-          <div class="fc-sub">${f.sub}</div>
-          <div class="fc-badge ${f.pay === 'ad' ? 'badge-ad' : 'badge-pay'}">${f.pay === 'ad' ? '🎬 광고 무료' : '₩500'}</div>
-        </div>`).join('')}
+    <div class="section"><div class="section-head"><h3>가장 정확한 사주 풀이</h3><span class="more">전체보기</span></div></div>
+    <div class="icon-grid">${grid}</div>
+    <div class="section" style="padding-bottom:20px">
+      <div class="card" style="margin:0;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FFF7E4,#FFF0F0)">
+        <div style="font-size:38px">🧧</div>
+        <div style="flex:1"><div style="font-weight:800">오늘도 운세 보고 복주머니 챙겨요</div><div class="muted">출석체크 · 매일 크레딧 적립 (준비 중)</div></div>
+      </div>
     </div>`;
 }
 function detailHead(title) {
