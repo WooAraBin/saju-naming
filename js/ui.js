@@ -34,7 +34,7 @@ function renderNav() {
   $('bottomNav').innerHTML = items.map(([v, i, l]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${i}</div>${l}</div>`).join('');
 }
-const DONE = new Set(['saju', 'daily', 'newyear', 'child', 'teen', 'face', 'dream']); // 구현된 기능
+const DONE = new Set(['saju', 'face', 'name']); // 제대로 구현+확인된 기능만 뱃지
 const TINTS = { saju: '#EAF0FE', couple: '#FDEBF1', child: '#FFF3E0', teen: '#E9F7EC', daily: '#FFF6DE', newyear: '#EFEAFE', moving: '#E8F4FE', dream: '#EDEBFB', face: '#FCEEE8', name: '#EAF6F3' };
 function renderHome() {
   const quick = ['📅 출석체크', '☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세'];
@@ -74,6 +74,7 @@ function openFeature(id) {
   if (BIRTH_BTN[id]) return renderBirthForm(id, f);
   if (id === 'face') return renderFaceForm(f);
   if (id === 'dream') return renderDreamForm(f);
+  if (id === 'name') return renderNameForm(f);
   $('view-reading').innerHTML = detailHead(f.title) +
     `<div class="card" style="text-align:center;color:var(--ink-3);padding:40px 18px">${f.emoji}<br/><b>${f.title}</b>는 준비 중이에요<br/><span class="muted">곧 열려요.</span></div>`;
   showView('reading');
@@ -170,6 +171,100 @@ function runDream() {
   const t = ($('fDream').value || '').trim(); if (!t) { alert('꿈 내용을 입력해주세요'); return; }
   $('sajuResult').innerHTML = aiLoading('해몽 중…');
   callAI(dreamPrompt(t));
+}
+
+// ── 이름점수 (기존 naming.js 로직 이식) ──
+let DICT = null;
+function buildDict() {
+  if (DICT) return DICT;
+  const db = window.HanjaDB || { SURNAME: {}, SURNAME_COMPOUND: {}, HANJA: {} };
+  const surname = {};
+  for (const [hangul, arr] of Object.entries(db.SURNAME || {}))
+    surname[hangul] = arr.map(([hanja, strokes, wuxing]) => ({ hangul, hanja, strokes, wuxing }));
+  for (const [hangul, variants] of Object.entries(db.SURNAME_COMPOUND || {})) {
+    const syl = [...hangul];
+    surname[hangul] = variants.map((parts) => {
+      const ps = parts.map(([hanja, strokes, wuxing], i) => ({ hangul: syl[i], hanja, strokes, wuxing }));
+      return { hangul, hanja: ps.map((p) => p.hanja).join(''), strokes: ps.reduce((a, p) => a + p.strokes, 0), wuxing: ps[ps.length - 1].wuxing, parts: ps };
+    });
+  }
+  const pool = [];
+  for (const [hangul, arr] of Object.entries(db.HANJA || {}))
+    arr.forEach(([hanja, strokes, wuxing]) => pool.push({ hangul, hanja, strokes, wuxing }));
+  DICT = { surname, pool };
+  return DICT;
+}
+function birthInline() {
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+    <label style="font-size:12px;color:var(--ink-2)">생년월일<input id="fBirth" type="date" style="width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px"/></label>
+    <label style="font-size:12px;color:var(--ink-2)">시각<input id="fTime" type="time" value="12:00" style="width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:14px"/></label>
+    </div><div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap">
+    <label style="font-size:12px;display:flex;gap:5px;align-items:center"><input type="checkbox" id="fTimeUnknown"/> 시간 모름</label>
+    <label style="font-size:12px;display:flex;gap:5px;align-items:center">성별<select id="fGender" style="padding:5px;border-radius:8px;border:1px solid var(--line)"><option value="M">남</option><option value="F">여</option></select></label>
+    <label style="font-size:12px;display:flex;gap:5px;align-items:center">달력<select id="fCal" style="padding:5px;border-radius:8px;border:1px solid var(--line)"><option value="solar">양력</option><option value="lunar">음력</option></select></label></div>`;
+}
+function renderNameForm() {
+  buildDict();
+  $('view-reading').innerHTML = detailHead('이름점수') + `<div class="card">
+    <p class="muted" style="margin:0 0 12px">이름이 사주와 얼마나 어울리는지 채점해요. <b>한자를 고르면 사주 반영 6항목</b>, 없으면 한글 4항목.</p>
+    <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:10px">
+      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">성(한글)<input id="nSeong" maxlength="2" placeholder="김" oninput="nPopSeong()" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px"/></label>
+      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">성 한자<select id="nSeongHanja" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:14px"><option value="">한자 없음</option></select></label>
+    </div>
+    <label style="font-size:13px;font-weight:700;color:var(--ink-2);display:block;margin-top:12px">이름(한글)<input id="nName" maxlength="4" placeholder="서연" oninput="nPopName()" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px"/></label>
+    <div id="nNameHanjaWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px"></div>
+    <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;color:var(--primary);font-weight:700">＋ 생년월일시 (한자 6항목 채점용, 선택)</summary>${birthInline()}</details>
+    <button class="btn" style="margin-top:14px" onclick="runName()">이름 채점</button>
+  </div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function nPopSeong() {
+  const seong = ($('nSeong').value || '').trim(), arr = DICT.surname[seong] || [];
+  $('nSeongHanja').innerHTML = '<option value="">한자 없음</option>' + arr.map((a) => `<option value="${a.hanja}">${a.hanja} (${a.strokes}획·${a.wuxing})</option>`).join('');
+}
+function nPopName() {
+  const name = ($('nName').value || '').trim();
+  $('nNameHanjaWrap').innerHTML = [...name].map((h) => {
+    const cands = DICT.pool.filter((p) => p.hangul === h);
+    const opts = '<option value="">한자 없음</option>' + cands.map((c) => `<option value="${c.hanja}">${c.hanja} (${c.strokes}획·${c.wuxing})</option>`).join('');
+    return `<label style="font-size:12px;color:var(--ink-2)">${h} 한자<select class="nNameHanja" style="width:100%;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:13px">${opts}</select></label>`;
+  }).join('');
+}
+const NAXIS_LABELS = { nature: '자연스러움', saju: '사주보완', sugri: '수리길흉', eum: '발음오행', jawon: '자원조화', eumyang: '음양조화', call: '발음편의' };
+const NAXIS_ORDER = ['nature', 'saju', 'sugri', 'eum', 'jawon', 'eumyang', 'call'];
+let nChart = null;
+function runName() {
+  const seong = ($('nSeong').value || '').trim(), name = ($('nName').value || '').trim();
+  if (!seong || !name) { alert('성과 이름을 입력하세요'); return; }
+  const sHanja = $('nSeongHanja').value;
+  const nameSels = [...document.querySelectorAll('.nNameHanja')].map((s) => s.value);
+  const chars2 = [...name];
+  const fullHanja = sHanja && chars2.length === 2 && nameSels.length === 2 && nameSels.every((v) => v);
+  let r;
+  if (fullHanja) {
+    const bd = $('fBirth') && $('fBirth').value;
+    if (!bd) { alert('한자 6항목 채점은 생년월일시가 필요해요 (아래 펼쳐 입력)'); return; }
+    const saju = getSaju(); if (!saju) return;
+    const surnameObj = (DICT.surname[seong] || []).find((x) => x.hanja === sHanja) || { hangul: seong, hanja: sHanja, strokes: 0, wuxing: '토' };
+    const chars = chars2.map((h, i) => (DICT.pool.find((p) => p.hangul === h && p.hanja === nameSels[i])) || { hangul: h, hanja: nameSels[i], strokes: 0, wuxing: '토' });
+    r = window.Naming.scoreName(saju, surnameObj, chars);
+  } else {
+    r = window.Naming.scoreNameHangul(seong, name);
+  }
+  renderNameResult(r);
+}
+function renderNameResult(r) {
+  const order = NAXIS_ORDER.filter((k) => r.axes[k] != null);
+  const detail = order.map((k) => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)"><span class="muted">${NAXIS_LABELS[k]}</span><b>${r.axes[k]}</b></div>`).join('');
+  const gyeok = r.gyeok ? `<div style="display:flex;justify-content:space-between;padding:7px 0"><span class="muted">인격·지격·외격·총격</span><b>${r.gyeok.in.num}·${r.gyeok.ji.num}·${r.gyeok.oe.num}·${r.gyeok.chong.num}</b></div>` : '';
+  $('sajuResult').innerHTML = `<div class="card">
+    <div style="text-align:center"><div style="font-weight:800;font-size:16px">${r.hangul}</div>
+      <div style="font-size:40px;font-weight:900;color:var(--primary)">${r.total}<span style="font-size:16px;color:var(--ink-3)">점</span></div></div>
+    <div style="max-width:280px;margin:6px auto"><canvas id="nRadar" height="240"></canvas></div>
+    <div style="margin-top:6px">${detail}${gyeok}</div></div>`;
+  const labels = order.map((k) => NAXIS_LABELS[k]), data = order.map((k) => r.axes[k]);
+  if (nChart) nChart.destroy();
+  nChart = new Chart($('nRadar'), { type: 'radar', data: { labels, datasets: [{ data, fill: true, backgroundColor: 'rgba(75,123,245,.15)', borderColor: '#4B7BF5', pointBackgroundColor: '#4B7BF5' }] }, options: { scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }, plugins: { legend: { display: false } } } });
 }
 
 /* ── 만세력 ── */
@@ -410,4 +505,4 @@ function pwCheck() {
 }
 
 renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck });
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck, nPopSeong, nPopName, runName });
