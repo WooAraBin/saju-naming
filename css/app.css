@@ -144,9 +144,10 @@ img { max-width: 100%; display: block; }
 .wx-수 { background: var(--wx-su); }
 
 /* 만세력 표 */
-.saju-grid { display: grid; grid-template-columns: 56px repeat(4, 1fr); gap: 6px; align-items: center; }
-.saju-grid .rowlbl { font-size: 11px; color: var(--ink-3); font-weight: 700; }
-.saju-grid .colhead { text-align: center; font-size: 11px; color: var(--ink-3); font-weight: 700; }
+.saju-grid { display: grid; grid-template-columns: 46px repeat(4, 1fr); gap: 6px; align-items: center; }
+.saju-grid-big { row-gap: 9px; column-gap: 6px; }
+.saju-grid .rowlbl { font-size: 11px; color: var(--ink-3); font-weight: 700; display: flex; align-items: center; }
+.saju-grid .colhead { text-align: center; font-size: 12px; color: var(--ink); font-weight: 700; line-height: 1.25; }
 .saju-grid .cell { text-align: center; font-size: 12px; color: var(--ink-2); }
 .saju-grid .tilecell { display: flex; justify-content: center; }
 

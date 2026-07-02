@@ -19,6 +19,9 @@ const FEATURES = [
 ];
 const featById = (id) => FEATURES.find((f) => f.id === id);
 const WXHEX = { 목: '#4C9AFF', 화: '#FF6B6B', 토: '#FFC94D', 금: '#C9CED8', 수: '#2B2F3A' };
+const GAN_KO = { 甲: '갑', 乙: '을', 丙: '병', 丁: '정', 戊: '무', 己: '기', 庚: '경', 辛: '신', 壬: '임', 癸: '계' };
+const ZHI_KO = { 子: '자', 丑: '축', 寅: '인', 卯: '묘', 辰: '진', 巳: '사', 午: '오', 未: '미', 申: '신', 酉: '유', 戌: '술', 亥: '해' };
+const WX_HANJA = { 목: '木', 화: '火', 토: '土', 금: '金', 수: '水' };
 
 function showView(name) {
   document.querySelectorAll('.view').forEach((v) => v.classList.remove('on'));
@@ -106,21 +109,31 @@ function renderManse() {
   const body = cur === 'wonguk' ? manseWonguk() : cur === 'ohaeng' ? manseOhaeng() : cur === 'shin' ? manseShin() : manseDaewoon();
   return `<div class="card">${tabs}${body}</div>`;
 }
+// 점신 스타일 큰 타일: 한자 + (한글·오행)
+function tileFull(ch, isGan) {
+  const w = wxOf(ch, isGan), ko = (isGan ? GAN_KO : ZHI_KO)[ch] || '';
+  const dark = (w === '토' || w === '금');
+  return `<div class="wx-tile wx-${w}" style="width:100%;height:auto;aspect-ratio:1;flex-direction:column;border-radius:13px;gap:1px">
+    <div style="font-size:22px;line-height:1;font-weight:900">${ch}</div>
+    <div style="font-size:9px;font-weight:700;opacity:${dark ? '.7' : '.9'};letter-spacing:-.3px">${ko}·${w}${WX_HANJA[w] || ''}</div></div>`;
+}
 function manseWonguk() {
-  const s = window._saju, cols = [['시', 'time'], ['일', 'day'], ['월', 'month'], ['년', 'year']];
+  const s = window._saju;
+  const cols = [['시', 'time', '말년운'], ['일', 'day', '장년운'], ['월', 'month', '청년운'], ['년', 'year', '초년운']];
   const tu = s.timeUnknown, p = s.pillars, dt = s.detail || {}, sp = s.sip.pillars;
-  const q = (k, i) => (k === 'time' && tu) ? '?' : (p[k] ? p[k][i] : '');
+  const q = (k, i) => p[k] ? p[k][i] : '';
   const row = (lbl, fn) => `<div class="rowlbl">${lbl}</div>` + cols.map(([, k]) => fn(k)).join('');
   const cell = (v) => `<div class="cell">${v}</div>`;
-  const unk = `<div class="wx-tile" style="width:46px;height:46px;background:var(--surface-2);color:var(--ink-3)">?</div>`;
-  return `<div class="saju-grid">
-    <div></div>${cols.map(([l]) => `<div class="colhead">${l}주</div>`).join('')}
-    ${row('십성', (k) => cell(k === 'day' ? '일간' : (sp[k] ? sp[k].gan : '')))}
-    ${row('천간', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tile(q(k, 0), true)}</div>`)}
-    ${row('지지', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tile(q(k, 1), false)}</div>`)}
+  const unk = `<div class="wx-tile" style="width:100%;height:auto;aspect-ratio:1;border-radius:13px;background:var(--surface-2);color:var(--ink-3);font-size:20px">?</div>`;
+  return `<div class="saju-grid saju-grid-big">
+    <div class="rowlbl"></div>${cols.map(([l, , sub]) => `<div class="colhead"><b>${l}주</b><br><span style="font-weight:500;color:var(--ink-3);font-size:10px">${sub}</span></div>`).join('')}
+    ${row('십성', (k) => cell(k === 'day' ? '<b>일간</b>' : (sp[k] ? sp[k].gan : '')))}
+    ${row('천간', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tileFull(q(k, 0), true)}</div>`)}
+    ${row('지지', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tileFull(q(k, 1), false)}</div>`)}
     ${row('십성', (k) => cell(sp[k] ? sp[k].zhi : ''))}
-    ${row('지장간', (k) => cell(`<span style="font-size:11px">${(dt[k] || {}).hideGan || ''}</span>`))}
-    ${row('12운성', (k) => cell(`<span style="font-size:11px">${(dt[k] || {}).unseong || ''}</span>`))}
+    ${row('지장간', (k) => cell(`<span style="font-size:11px;letter-spacing:1px">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).hideGan || '')}</span>`))}
+    ${row('12운성', (k) => cell(`<span style="font-size:11.5px">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).unseong || '')}</span>`))}
+    ${row('공망', (k) => cell(`<span style="font-size:11px;color:var(--ink-3)">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).gongmang || '-')}</span>`))}
   </div>`;
 }
 function manseOhaeng() {
