@@ -34,7 +34,7 @@ function renderNav() {
   $('bottomNav').innerHTML = items.map(([v, i, l]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${i}</div>${l}</div>`).join('');
 }
-const DONE = new Set(['saju']); // 실제 구현된 기능
+const DONE = new Set(['saju', 'daily', 'newyear', 'child', 'teen', 'face', 'dream']); // 구현된 기능
 const TINTS = { saju: '#EAF0FE', couple: '#FDEBF1', child: '#FFF3E0', teen: '#E9F7EC', daily: '#FFF6DE', newyear: '#EFEAFE', moving: '#E8F4FE', dream: '#EDEBFB', face: '#FCEEE8', name: '#EAF6F3' };
 function renderHome() {
   const quick = ['📅 출석체크', '☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세'];
@@ -65,43 +65,111 @@ function renderHome() {
 function detailHead(title) {
   return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div></div>`;
 }
+// 생일 입력 기반 기능(사주 엔진 파생)
+const BIRTH_BTN = { saju: '사주 보기', daily: '오늘의 운세 보기', newyear: '올해 운세 보기', child: '자식 사주 보기', teen: '사춘기 분석 보기' };
+const CHILD_SET = new Set(['child', 'teen']);
+
 function openFeature(id) {
   const f = featById(id);
-  if (id !== 'saju') {
-    $('view-reading').innerHTML = detailHead(f.title) +
-      `<div class="card" style="text-align:center;color:var(--ink-3);padding:40px 18px">${f.emoji}<br/><b>${f.title}</b>는 준비 중이에요<br/><span class="muted">사주팔자부터 실제 분석이 동작합니다.</span></div>`;
-    showView('reading'); return;
-  }
-  $('view-reading').innerHTML = detailHead('사주팔자') + `
-    <div class="card">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <label style="font-size:13px;font-weight:700;color:var(--ink-2)">생년월일
-          <input id="fBirth" type="date" value="1990-01-01" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
-        <label style="font-size:13px;font-weight:700;color:var(--ink-2)">출생 시각
-          <input id="fTime" type="time" value="12:00" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
-      </div>
-      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;align-items:center">
-        <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="fTimeUnknown" /> 시간 모름</label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:6px">성별 <select id="fGender" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="M">남</option><option value="F">여</option></select></label>
-        <label style="font-size:13px;display:flex;align-items:center;gap:6px">달력 <select id="fCal" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
-      </div>
-      <button class="btn" style="margin-top:16px" onclick="runSaju()">사주 보기</button>
-    </div>
-    <div id="sajuResult"></div>`;
+  if (BIRTH_BTN[id]) return renderBirthForm(id, f);
+  if (id === 'face') return renderFaceForm(f);
+  if (id === 'dream') return renderDreamForm(f);
+  $('view-reading').innerHTML = detailHead(f.title) +
+    `<div class="card" style="text-align:center;color:var(--ink-3);padding:40px 18px">${f.emoji}<br/><b>${f.title}</b>는 준비 중이에요<br/><span class="muted">곧 열려요.</span></div>`;
   showView('reading');
 }
-function runSaju() {
+function birthFields(child) {
+  return `<div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">${child ? '자녀 ' : ''}생년월일
+        <input id="fBirth" type="date" value="${child ? '2015-01-01' : '1990-01-01'}" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
+      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">출생 시각
+        <input id="fTime" type="time" value="12:00" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="fTimeUnknown" /> 시간 모름</label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px">성별 <select id="fGender" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="M">남</option><option value="F">여</option></select></label>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px">달력 <select id="fCal" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
+    </div>`;
+}
+function renderBirthForm(id, f) {
+  $('view-reading').innerHTML = detailHead(f.title) + birthFields(CHILD_SET.has(id)) +
+    `<button class="btn" style="margin-top:16px" onclick="runReading('${id}')">${BIRTH_BTN[id]}</button></div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function getSaju() {
   const bd = $('fBirth').value, tm = $('fTime').value || '12:00';
-  if (!bd) { alert('생년월일을 입력해주세요'); return; }
+  if (!bd) { alert('생년월일을 입력해주세요'); return null; }
   const [y, mo, d] = bd.split('-').map(Number), [h, mi] = tm.split(':').map(Number);
-  const opt = { year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar' };
-  const saju = window.Saju.computeSaju(opt);
-  window._saju = saju; window._manseTab = 'wonguk';
-  $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div><div class="card" id="aiCard"><div class="loading"><span class="spinner"></span> AI 심층분석 생성 중…</div></div>`;
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: deepPrompt(saju) }) })
+  return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar' });
+}
+function callAI(prompt, image) {
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image ? { prompt, image } : { prompt }) })
     .then((r) => r.json())
     .then((j) => { $('aiCard').innerHTML = j.text ? `<div class="md">${mdLite(j.text)}</div>` : '<div class="loading">잠시 후 다시 시도해주세요.</div>'; })
     .catch(() => { $('aiCard').innerHTML = '<div class="loading">분석 실패 — 다시 시도해주세요.</div>'; });
+}
+const aiLoading = (t) => `<div class="card" id="aiCard"><div class="loading"><span class="spinner"></span> ${t || '분석 생성 중…'}</div></div>`;
+function compactSummary(s) {
+  const chip = (t) => `<span class="pill" style="box-shadow:none;background:var(--surface-2);padding:6px 12px">${t}</span>`;
+  const p = s.pillars;
+  return `<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap">
+    ${chip(`${p.year}·${p.month}·${p.day}${s.timeUnknown ? '' : '·' + p.time}`)}
+    ${chip(`일간 ${s.dayGan}(${s.dayWx})`)}${chip(s.isStrong ? '신강' : '신약')}${chip(`${s.tti}띠`)}</div></div>`;
+}
+function runReading(id) {
+  const saju = getSaju(); if (!saju) return;
+  window._saju = saju; window._manseTab = 'wonguk';
+  if (id === 'saju') {
+    $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div>${aiLoading('AI 심층분석 생성 중…')}`;
+    callAI(deepPrompt(saju)); return;
+  }
+  const pr = id === 'daily' ? dailyPrompt(saju) : id === 'newyear' ? newyearPrompt(saju) : id === 'child' ? childPrompt(saju) : teenPrompt(saju);
+  $('sajuResult').innerHTML = compactSummary(saju) + aiLoading();
+  callAI(pr);
+}
+// 관상
+window._faceImg = null;
+function renderFaceForm(f) {
+  $('view-reading').innerHTML = detailHead('관상') + `<div class="card">
+    <p class="muted" style="margin:0 0 12px">얼굴 사진으로 관상을 봐요. 사진은 서버에 저장하지 않고 분석 후 폐기됩니다.</p>
+    <label class="btn ghost" style="display:block;text-align:center">📁 얼굴 사진 선택<input type="file" accept="image/*" hidden onchange="onFacePhoto(event)"></label>
+    <img id="fPreview" style="width:100%;border-radius:12px;margin-top:12px;display:none" alt="" />
+    <button class="btn" style="margin-top:12px" onclick="runFace()">관상 분석</button>
+  </div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function onFacePhoto(e) {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const max = 640, sc = Math.min(1, max / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const url = cv.toDataURL('image/jpeg', 0.85);
+    window._faceImg = { data: url.split(',')[1], mime: 'image/jpeg' };
+    const pv = $('fPreview'); pv.src = url; pv.style.display = 'block';
+  };
+  img.src = URL.createObjectURL(file);
+}
+function runFace() {
+  if (!window._faceImg) { alert('얼굴 사진을 먼저 선택하세요'); return; }
+  $('sajuResult').innerHTML = aiLoading('관상 분석 중… (20~40초)');
+  callAI(gwansangPrompt(), window._faceImg);
+}
+// 꿈해몽
+function renderDreamForm(f) {
+  $('view-reading').innerHTML = detailHead('꿈해몽') + `<div class="card">
+    <label style="font-size:13px;font-weight:700;color:var(--ink-2)">어젯밤 꿈
+      <textarea id="fDream" rows="5" placeholder="꿈 내용을 자유롭게 적어주세요" style="width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit"></textarea></label>
+    <button class="btn" style="margin-top:12px" onclick="runDream()">꿈 풀이 보기</button>
+  </div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function runDream() {
+  const t = ($('fDream').value || '').trim(); if (!t) { alert('꿈 내용을 입력해주세요'); return; }
+  $('sajuResult').innerHTML = aiLoading('해몽 중…');
+  callAI(dreamPrompt(t));
 }
 
 /* ── 만세력 ── */
@@ -246,6 +314,70 @@ function deepPrompt(s) {
 대운: ${dwList}
 현재대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'} / 올해세운: ${sw ? `${sw.year} ${sw.ganzhi}(${sw.sipsin})` : '-'}`;
 }
+function sajuLine(s) {
+  return `일간 ${s.dayGan}(${s.dayWx}) ${s.isStrong ? '신강' : '신약'} · ${s.tti}띠 · 오행 ${window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ')} · 용신 ${(s.yongsin || []).join('·') || '-'} · 팔자 ${s.pillars.year}/${s.pillars.month}/${s.pillars.day}${s.timeUnknown ? '' : '/' + s.pillars.time}`;
+}
+function dailyPrompt(s) {
+  const t = new Date();
+  let gz = ''; try { gz = Solar.fromYmd(t.getFullYear(), t.getMonth() + 1, t.getDate()).getLunar().getDayInGanZhi(); } catch (e) {}
+  return `너는 사주명리 상담가다. 아래 사주와 오늘 일진을 엮어 "오늘의 운세"를 가볍고 친근하게 써라. 마크다운(## 제목, **굵게**). 단정·불행 단정 금지, '~하면 좋아요' 톤. 짧고 명료하게.
+## 오늘 한줄
+## 총운
+## 재물·일
+## 애정·관계
+## 건강·컨디션
+## 오늘의 팁 (행운 색·시간·방향)
+[데이터] 오늘 ${t.getFullYear()}.${t.getMonth() + 1}.${t.getDate()} 일진 ${gz} / ${sajuLine(s)} / 올해세운 ${s.sewoon ? s.sewoon.ganzhi : ''} / 현재대운 ${s.daewoon ? s.daewoon.ganzhi : ''}`;
+}
+function newyearPrompt(s) {
+  return `너는 사주명리 상담가다. 아래 사주와 올해 세운을 엮어 "올해의 운세"를 깊이 있게, 위트 있게 써라. 마크다운(## 제목). 불행 단정 금지.
+## 올해 한줄 요약
+## 전체 흐름 (상반기·하반기)
+## 재물운
+## 애정·결혼운
+## 직업·학업운
+## 건강운
+## 조심할 것 & 조언
+[데이터] 올해 ${s.sewoon ? s.sewoon.year + ' 세운 ' + s.sewoon.ganzhi + '(' + s.sewoon.sipsin + ')' : ''} / 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : ''} / ${sajuLine(s)}`;
+}
+function childPrompt(s) {
+  return `너는 사주명리 상담가다. 아래 자녀 사주로 아이의 타고난 기질을 따뜻하게 풀고, 부모에게 도움이 되는 양육 조언을 줘라. 마크다운(## 제목). 아이를 규정짓지 말고 '~한 기질이 있어요' 톤.
+## 우리 아이 한마디
+## 타고난 기질·성격
+## 재능·적성
+## 학습·집중 스타일
+## 주의하면 좋은 점
+## 부모 양육 팁
+[자녀 사주] ${sajuLine(s)} / 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : ''}`;
+}
+function teenPrompt(s) {
+  const dw = (s.daewoonList || []).filter((d) => d.startAge <= 19).slice(-2).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
+  return `너는 사주명리와 청소년 심리를 함께 보는 상담가다. 아래 자녀 사주와 10대 대운으로 "사춘기 예상"을 부모 관점에서 써라. 마크다운(## 제목). 겁주지 말고 대비·소통 중심.
+## 사춘기 한마디
+## 이 시기 성향 변화
+## 부딪히기 쉬운 지점 (갈등 포인트)
+## 부모의 대처법 (소통 팁)
+## 아이의 강점 살리기
+## 이 시기 응원
+[자녀 사주] ${sajuLine(s)} / 10대 대운 ${dw || (s.daewoon ? s.daewoon.ganzhi : '')}`;
+}
+function dreamPrompt(text) {
+  return `너는 전통 꿈해몽과 상징 해석에 능한 상담가다. 아래 꿈을 풀이해줘. 마크다운(## 제목). 단정적 흉몽 규정은 피하고 '~을 뜻할 수 있어요' 톤, 마지막은 긍정 조언.
+## 꿈의 핵심 상징
+## 해몽 (상징별 의미)
+## 길흉·흐름
+## 조언 한마디
+[꿈 내용] ${text}`;
+}
+function gwansangPrompt() {
+  return `너는 관상(觀相) 전문가다. 첨부된 얼굴 사진만으로 관상을 풀이해줘. 마크다운(## 제목, **굵게**, - 목록).
+[어조] 잘생김/못생김 미추 평가 금지. 관상학적 특징을 구체 관찰(예 "눈썹이 짧은 편이라 ~", "코가 곧고 콧방울이 단단해 ~") → 의미 해석. 단정 운세 피하고 '~한 편이에요' 톤, 재미·참고용 전제.
+## 얼굴 오행
+## 삼정(三停) — 초년·중년·말년
+## 오관(五官) — 눈썹·눈·코·입·귀
+## 더 좋게 — 보완 포인트 (관리·표정·헤어 등, 강요 금지 '참고만' 톤, 의료조언 아님)
+## 종합 — 인상이 말해주는 성향과 조언`;
+}
 function mdLite(t) {
   const esc = (v) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const inline = (v) => v.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
@@ -257,5 +389,25 @@ function mdLite(t) {
   }).join('');
 }
 
-renderNav(); renderHome();
-Object.assign(window, { showView, openFeature, runSaju, switchManseTab });
+// ── 비밀번호 게이트 (1212) ──
+function passwordGate() {
+  if (sessionStorage.getItem('sj_auth') === '1') return;
+  const ov = document.createElement('div');
+  ov.id = 'pwGate';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px';
+  ov.innerHTML = `<div style="font-size:44px">🔒</div>
+    <div style="font-weight:800;font-size:17px">비밀번호를 입력하세요</div>
+    <input id="pwIn" type="password" inputmode="numeric" onkeydown="if(event.key==='Enter')pwCheck()" style="width:200px;padding:13px;text-align:center;font-size:18px;letter-spacing:4px;border:1px solid var(--line);border-radius:12px" />
+    <button class="btn" style="width:200px" onclick="pwCheck()">입력</button>`;
+  document.body.appendChild(ov);
+  setTimeout(() => { const i = document.getElementById('pwIn'); if (i) i.focus(); }, 100);
+}
+function pwCheck() {
+  if (document.getElementById('pwIn').value === '1212') {
+    sessionStorage.setItem('sj_auth', '1');
+    const g = document.getElementById('pwGate'); if (g) g.remove();
+  } else { alert('비밀번호가 틀렸어요'); document.getElementById('pwIn').value = ''; }
+}
+
+renderNav(); renderHome(); passwordGate();
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck });
