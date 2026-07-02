@@ -29,41 +29,57 @@ function showView(name) {
   document.querySelectorAll('.bottom-nav .nav-item').forEach((n) => n.classList.toggle('on', n.dataset.v === name));
   window.scrollTo(0, 0);
 }
+/* ── 라인 아이콘(SVG) — 이모지 금지, 점신 톤 ── */
+const _svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const ICONS = {
+  saju: _svg('<circle cx="12" cy="10.5" r="6.2"/><path d="M8.5 19.5h7M10 19.5v-1.8M14 19.5v-1.8"/><path d="M9.5 8.7c.6-1.2 1.8-2 3.2-2"/>'),
+  couple: _svg('<path d="M9.2 14.5C6.8 12.6 4.5 10.8 4.5 8.4 4.5 6.7 5.8 5.5 7.3 5.5c1 0 1.7.5 2.2 1.2.5-.7 1.3-1.2 2.2-1.2 1.5 0 2.8 1.2 2.8 2.9 0 2.4-2.3 4.2-5.3 6.1z"/><path d="M16.2 18.8c-1.9-1.5-3.7-2.9-3.7-4.8 0-1.3 1-2.3 2.2-2.3.8 0 1.4.4 1.8 1 .4-.6 1-1 1.8-1 1.2 0 2.2 1 2.2 2.3 0 1.9-1.8 3.3-4.3 4.8z"/>'),
+  child: _svg('<circle cx="12" cy="13" r="6.5"/><path d="M12 6.5c0-1.5 1-2.5 2.3-2.5"/><circle cx="9.8" cy="12.5" r="0.4" fill="currentColor"/><circle cx="14.2" cy="12.5" r="0.4" fill="currentColor"/><path d="M10.3 15.5c.9.8 2.5.8 3.4 0"/>'),
+  teen: _svg('<path d="M12 20v-8"/><path d="M12 12C12 8.5 9.5 6.5 6 6.5c0 3.5 2.5 5.5 6 5.5z"/><path d="M12 14c0-2.8 2-4.5 5-4.5 0 2.8-2 4.5-5 4.5z"/>'),
+  daily: _svg('<circle cx="12" cy="12" r="4.2"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M18 6l-1.4 1.4M7.4 16.6L6 18"/>'),
+  newyear: _svg('<path d="M12 3l1.2 4.2L17.5 8l-4.3 1.4L12 14l-1.2-4.6L6.5 8l4.3-.8z"/><path d="M18 14l.6 2 2 .6-2 .6-.6 2-.6-2-2-.6 2-.6zM6 15l.5 1.6 1.6.5-1.6.5L6 19.2l-.5-1.6-1.6-.5 1.6-.5z"/>'),
+  moving: _svg('<path d="M4.5 11.5L12 5l7.5 6.5"/><path d="M6.5 10v9h11v-9"/><path d="M10.5 19v-5h3v5"/>'),
+  dream: _svg('<path d="M19 13.5A7.5 7.5 0 0 1 10.5 5 7.5 7.5 0 1 0 19 13.5z"/><path d="M17 5l.5 1.5L19 7l-1.5.5L17 9l-.5-1.5L15 7l1.5-.5z"/>'),
+  face: _svg('<circle cx="12" cy="12" r="8"/><path d="M9 10.2h.01M15 10.2h.01M11 12v2h1.6"/><path d="M9.5 16.3c1.4 1 3.6 1 5 0" stroke-width="1.4"/>'),
+  name: _svg('<path d="M5 19l1.2-4L15.5 5.7a1.8 1.8 0 0 1 2.6 0l.2.2a1.8 1.8 0 0 1 0 2.6L9 17.8z"/><path d="M13.5 7.7l2.8 2.8"/>'),
+  home: _svg('<path d="M4.5 11L12 4.5 19.5 11"/><path d="M6.5 9.5V19h11V9.5"/>'),
+  archive: _svg('<path d="M4 8.5V18a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 18V8.5"/><path d="M3.5 5h17v3.5h-17z"/><path d="M10 12h4"/>'),
+  me: _svg('<circle cx="12" cy="8.5" r="3.5"/><path d="M5.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/>'),
+  share: _svg('<circle cx="6.5" cy="12" r="2.2"/><circle cx="17" cy="6" r="2.2"/><circle cx="17" cy="18" r="2.2"/><path d="M8.5 11L15 7M8.5 13.2L15 17"/>'),
+};
 function renderNav() {
-  const items = [['home', '🏠', '홈'], ['archive', '📂', '보관함'], ['me', '👤', '내 정보']];
-  $('bottomNav').innerHTML = items.map(([v, i, l]) =>
-    `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${i}</div>${l}</div>`).join('');
+  const items = [['home', 'home', '홈'], ['archive', 'archive', '보관함'], ['me', 'me', '내 정보']];
+  $('bottomNav').innerHTML = items.map(([v, ic, l]) =>
+    `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${ICONS[ic]}</div>${l}</div>`).join('');
 }
 const DONE = new Set(['saju', 'face', 'name']); // 제대로 구현+확인된 기능만 뱃지
-const TINTS = { saju: '#EAF0FE', couple: '#FDEBF1', child: '#FFF3E0', teen: '#E9F7EC', daily: '#FFF6DE', newyear: '#EFEAFE', moving: '#E8F4FE', dream: '#EDEBFB', face: '#FCEEE8', name: '#EAF6F3' };
 function renderHome() {
-  const quick = ['📅 출석체크', '☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세'];
+  const quick = ['☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세', '✍️ 이름점수'];
   const grid = FEATURES.map((f) => {
     const done = DONE.has(f.id);
     return `<div class="icon-item" onclick="openFeature('${f.id}')">
-      <div class="icon-circle" style="background:${TINTS[f.id] || '#F0F2F6'}">${f.emoji}
-        <span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${done ? '구현' : '준비'}</span></div>
+      <div class="ic">${ICONS[f.id] || ''}<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${done ? '구현' : '준비'}</span></div>
       <div class="icon-title">${f.title}</div>
     </div>`;
   }).join('');
   $('view-home').innerHTML = `
-    <div class="hero">
-      <div class="txt"><div class="kicker">🔮 오늘의 사주</div><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
-      <div class="emoji">🔮</div>
-    </div>
     <div class="report-tabs"><div class="rtab on">운세보고서</div><div class="rtab">인맥보고서</div><div class="rtab">행운보고서</div></div>
+    <div class="hero">
+      <div class="txt"><span class="kicker">오늘의 사주</span><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
+      <div class="art">🔮</div>
+    </div>
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
-    <div class="section"><div class="section-head"><h3>가장 정확한 사주 풀이</h3><span class="more">전체보기</span></div></div>
+    <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
     <div class="icon-grid">${grid}</div>
     <div class="section" style="padding-bottom:20px">
-      <div class="card" style="margin:0;display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#FFF7E4,#FFF0F0)">
-        <div style="font-size:38px">🧧</div>
-        <div style="flex:1"><div style="font-weight:800">오늘도 운세 보고 복주머니 챙겨요</div><div class="muted">출석체크 · 매일 크레딧 적립 (준비 중)</div></div>
+      <div class="card" style="margin:0;display:flex;align-items:center;gap:14px;background:var(--yellow-soft);border-color:#F3E3A0">
+        <div style="font-size:34px">🧧</div>
+        <div style="flex:1"><div style="font-weight:800;font-size:14.5px">오늘도 운세 보고 복주머니 챙겨요</div><div class="muted">출석체크 · 매일 크레딧 적립 (준비 중)</div></div>
       </div>
     </div>`;
 }
 function detailHead(title) {
-  return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div></div>`;
+  return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div><div class="share">${ICONS.share}</div></div>`;
 }
 // 생일 입력 기반 기능(사주 엔진 파생)
 const BIRTH_BTN = { saju: '사주 보기', daily: '오늘의 운세 보기', child: '자식 사주 보기', teen: '사춘기 분석 보기' };
@@ -81,27 +97,45 @@ function openFeature(id) {
   showView('reading');
 }
 function birthFields(child) {
-  return `<div class="card">
+  return `<div class="card" id="birthFormCard">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">${child ? '자녀 ' : ''}생년월일
-        <input id="fBirth" type="date" value="${child ? '2015-01-01' : '1990-01-01'}" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
-      <label style="font-size:13px;font-weight:700;color:var(--ink-2)">출생 시각
-        <input id="fTime" type="time" value="12:00" style="width:100%;margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:15px" /></label>
+      <label class="field-label">${child ? '자녀 ' : ''}생년월일
+        <input id="fBirth" type="date" value="${child ? '2015-01-01' : '1990-01-01'}" class="input" /></label>
+      <label class="field-label">출생 시각
+        <input id="fTime" type="time" value="12:00" class="input" /></label>
     </div>
-    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;align-items:center">
-      <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="fTimeUnknown" /> 시간 모름</label>
-      <label style="font-size:13px;display:flex;align-items:center;gap:6px">성별 <select id="fGender" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="M">남</option><option value="F">여</option></select></label>
-      <label style="font-size:13px;display:flex;align-items:center;gap:6px">달력 <select id="fCal" style="padding:6px;border-radius:8px;border:1px solid var(--line)"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
+    <div class="check-row">
+      <label><input type="checkbox" id="fTimeUnknown" /> 시간 모름</label>
+      <label>성별 <select id="fGender"><option value="M">남</option><option value="F">여</option></select></label>
+      <label>달력 <select id="fCal"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
     </div>`;
 }
 function renderBirthForm(id, f) {
-  $('view-reading').innerHTML = detailHead(f.title) + birthFields(CHILD_SET.has(id)) +
+  $('view-reading').innerHTML = detailHead(f.title) + `<div id="profileMini"></div>` + birthFields(CHILD_SET.has(id)) +
     `<button class="btn" style="margin-top:16px" onclick="runReading('${id}')">${BIRTH_BTN[id]}</button></div><div id="sajuResult"></div>`;
   showView('reading');
+}
+/* 입력 접힘 → 프로필 요약 카드 (점신의 프로필+변경 패턴) */
+function collapseForm(s) {
+  const card = $('birthFormCard'); if (!card) return;
+  card.classList.add('hidden');
+  const g = s.gender === 'M' ? '남성' : '여성';
+  const bi = window._birthInput || {};
+  const cal = bi.cal === 'lunar' ? '음력' : '양력';
+  $('profileMini').innerHTML = `<div class="profile-mini">
+    <div class="who"><div class="name">내 사주</div>
+      <div class="birth">${(bi.bd || '').replaceAll('-', '.')} (${cal}) · ${s.timeUnknown ? '시간 모름' : bi.tm} · ${g}</div></div>
+    <span class="pill-btn" onclick="expandForm()">변경</span></div>`;
+}
+function expandForm() {
+  const card = $('birthFormCard'); if (card) card.classList.remove('hidden');
+  $('profileMini').innerHTML = '';
+  $('sajuResult').innerHTML = '';
 }
 function getSaju() {
   const bd = $('fBirth').value, tm = $('fTime').value || '12:00';
   if (!bd) { alert('생년월일을 입력해주세요'); return null; }
+  window._birthInput = { bd, tm, cal: $('fCal').value };
   const [y, mo, d] = bd.split('-').map(Number), [h, mi] = tm.split(':').map(Number);
   return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar' });
 }
@@ -121,9 +155,11 @@ function compactSummary(s) {
 }
 function runReading(id) {
   const saju = getSaju(); if (!saju) return;
-  window._saju = saju; window._manseTab = 'wonguk';
+  window._saju = saju; window._manseTab = 'wonguk'; window._relTab = 'ganji';
+  collapseForm(saju);
   if (id === 'saju') {
-    $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div>${aiLoading('AI 심층분석 생성 중…')}`;
+    $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div>
+      <div class="section"><div class="section-head"><h3>AI 심층분석</h3></div></div>${aiLoading('AI 심층분석 생성 중…')}`;
     callAI(deepPrompt(saju)); return;
   }
   const pr = id === 'daily' ? dailyPrompt(saju) : id === 'newyear' ? newyearPrompt(saju) : id === 'child' ? childPrompt(saju) : teenPrompt(saju);
@@ -327,21 +363,30 @@ function tile(ch, isGan, sz) {
   const w = wxOf(ch, isGan), s = sz || 46;
   return `<div class="wx-tile wx-${w}" style="width:${s}px;height:${s}px;font-size:${Math.round(s * 0.46)}px">${ch}</div>`;
 }
-const TABS = [['wonguk', '사주원국'], ['ohaeng', '오행과 십성'], ['shin', '신강신약'], ['daewoon', '대운수']];
+const TABS = [['wonguk', '사주원국'], ['gwangye', '사주관계'], ['ohaeng', '오행과 십성'], ['shin', '신강신약'], ['daewoon', '대운수']];
+const TAB_HELP = {
+  wonguk: ['사주원국', '<ul><li><b>사주원국(四柱原局)</b>: 태어난 연·월·일·시 네 기둥의 천간과 지지. 나를 이루는 기본 설계도입니다.</li><li><b>십성</b>: 일간(나)을 기준으로 각 글자가 맺는 관계의 이름.</li><li><b>지장간</b>: 지지 속에 숨어 있는 천간.</li><li><b>12운성</b>: 기운의 생로병사 단계.</li></ul>'],
+  gwangye: ['사주관계', '<ul><li><b>합(合)</b>: 글자끼리 끌어당겨 힘을 합치는 관계.</li><li><b>충(沖)</b>: 정면으로 부딪쳐 변동을 만드는 관계.</li><li><b>형·파·해</b>: 마찰·조정·소모를 뜻하는 관계.</li><li><b>신살·길성</b>: 특정 조합이 만드는 특별한 기운.</li></ul>'],
+  ohaeng: ['오행과 십성', '<ul><li><b>오행</b>: 목·화·토·금·수 다섯 기운의 분포. 화살표 실선은 상생(生), 점선은 상극(剋).</li><li><b>부족/적정/과다</b>: 8글자 중 해당 오행이 차지하는 비중 기준.</li><li><b>십성</b>: 오행을 일간과의 관계로 다시 읽은 것.</li></ul>'],
+  shin: ['신강신약', '<ul><li><b>신강(身強)</b>: 일간을 돕는 기운(비겁·인성)이 강한 사주.</li><li><b>신약(身弱)</b>: 일간을 빼는 기운이 강한 사주.</li><li>강약 자체는 좋고 나쁨이 아니라, 필요한 기운(용신)을 찾는 기준입니다.</li></ul>'],
+  daewoon: ['대운/세운', '<ul><li><b>대운(大運)</b>: 10년 단위로 흐르는 큰 운. 삶의 성향·직업운·전환점에 영향.</li><li><b>세운(歲運)</b>: 해마다 바뀌는 운. 사건 발생·감정 흐름을 민감하게 투영.</li><li>점선 테두리가 현재 위치입니다.</li></ul>'],
+};
 function switchManseTab(t) { window._manseTab = t; $('manseBox').innerHTML = renderManse(); }
+function switchRelTab(t) { window._relTab = t; $('manseBox').innerHTML = renderManse(); }
 function renderManse() {
   const cur = window._manseTab || 'wonguk';
   const tabs = `<div class="tabs">${TABS.map(([k, l]) => `<div class="tab ${k === cur ? 'on' : ''}" onclick="switchManseTab('${k}')">${l}</div>`).join('')}</div>`;
-  const body = cur === 'wonguk' ? manseWonguk() : cur === 'ohaeng' ? manseOhaeng() : cur === 'shin' ? manseShin() : manseDaewoon();
-  return `<div class="card">${tabs}${body}</div>`;
+  const h = TAB_HELP[cur];
+  const head = `<div class="section-head" style="margin:2px 2px 16px"><h3 style="font-size:17px">${h[0]}</h3><span class="help-q" onclick="openSheet('${cur}')">?</span></div>`;
+  const body = cur === 'wonguk' ? manseWonguk() : cur === 'gwangye' ? manseGwangye() : cur === 'ohaeng' ? manseOhaeng() : cur === 'shin' ? manseShin() : manseDaewoon();
+  return `<div class="card">${tabs}${head}${body}</div>`;
 }
-// 점신 스타일 큰 타일: 한자 + (한글·오행)
+// 큰 타일: 한자 + (한글·오행) — 라벨 항상 동반(색 단독 식별 금지)
 function tileFull(ch, isGan) {
   const w = wxOf(ch, isGan), ko = (isGan ? GAN_KO : ZHI_KO)[ch] || '';
-  const dark = (w === '토' || w === '금');
-  return `<div class="wx-tile wx-${w}" style="width:100%;height:auto;aspect-ratio:1;flex-direction:column;border-radius:13px;gap:1px">
-    <div style="font-size:22px;line-height:1;font-weight:900">${ch}</div>
-    <div style="font-size:9px;font-weight:700;opacity:${dark ? '.7' : '.9'};letter-spacing:-.3px">${ko}·${w}${WX_HANJA[w] || ''}</div></div>`;
+  return `<div class="wx-tile tile-big wx-${w}">
+    <div class="han">${ch}</div>
+    <div class="sub">${ko}·${w}${WX_HANJA[w] || ''}</div></div>`;
 }
 function manseWonguk() {
   const s = window._saju;
@@ -349,45 +394,175 @@ function manseWonguk() {
   const tu = s.timeUnknown, p = s.pillars, dt = s.detail || {}, sp = s.sip.pillars;
   const q = (k, i) => p[k] ? p[k][i] : '';
   const row = (lbl, fn) => `<div class="rowlbl">${lbl}</div>` + cols.map(([, k]) => fn(k)).join('');
-  const cell = (v) => `<div class="cell">${v}</div>`;
-  const unk = `<div class="wx-tile" style="width:100%;height:auto;aspect-ratio:1;border-radius:13px;background:var(--surface-2);color:var(--ink-3);font-size:20px">?</div>`;
-  return `<div class="saju-grid saju-grid-big">
-    <div class="rowlbl"></div>${cols.map(([l, , sub]) => `<div class="colhead"><b>${l}주</b><br><span style="font-weight:500;color:var(--ink-3);font-size:10px">${sub}</span></div>`).join('')}
-    ${row('십성', (k) => cell(k === 'day' ? '<b>일간</b>' : (sp[k] ? sp[k].gan : '')))}
+  const cell = (v, muted) => `<div class="cell ${muted ? 'muted-cell' : ''}">${v}</div>`;
+  const unk = `<div class="wx-tile tile-big tile-unknown"><div class="han">?</div><div class="sub">시간 모름</div></div>`;
+  return `<div class="saju-grid">
+    <div class="rowlbl"></div>${cols.map(([l, , sub]) => `<div class="colhead"><b>${l}주</b><br><span class="sub">${sub}</span></div>`).join('')}
+    ${row('십성', (k) => cell(k === 'day' ? '<b>일원</b>' : (sp[k] ? sp[k].gan : '')))}
     ${row('천간', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tileFull(q(k, 0), true)}</div>`)}
     ${row('지지', (k) => `<div class="tilecell">${(k === 'time' && tu) ? unk : tileFull(q(k, 1), false)}</div>`)}
     ${row('십성', (k) => cell(sp[k] ? sp[k].zhi : ''))}
-    ${row('지장간', (k) => cell(`<span style="font-size:11px;letter-spacing:1px">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).hideGan || '')}</span>`))}
-    ${row('12운성', (k) => cell(`<span style="font-size:11.5px">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).unseong || '')}</span>`))}
-    ${row('공망', (k) => cell(`<span style="font-size:11px;color:var(--ink-3)">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).gongmang || '-')}</span>`))}
+    ${row('지장간', (k) => cell(`<span style="letter-spacing:1px">${(k === 'time' && tu) ? '-' : ((dt[k] || {}).hideGan || '')}</span>`, true))}
+    ${row('12운성', (k) => cell((k === 'time' && tu) ? '-' : ((dt[k] || {}).unseong || ''), true))}
+    ${row('공망', (k) => cell((k === 'time' && tu) ? '-' : ((dt[k] || {}).gongmang || '-'), true))}
   </div>`;
 }
+/* ── 사주관계: 충·합 다이어그램 + 신살·길성 ── */
+const _GAN_ORD = '甲乙丙丁戊己庚辛壬癸', _ZHI_ORD = '子丑寅卯辰巳午未申酉戌亥';
+function hanPairKo(txt) { // 甲庚 → 갑경, 戌辰 → 진술(관용 순서로 정렬)
+  const ord = (c) => { const g = _GAN_ORD.indexOf(c); return g >= 0 ? g : _ZHI_ORD.indexOf(c); };
+  return [...txt].sort((a, b) => ord(a) - ord(b)).map((c) => GAN_KO[c] || ZHI_KO[c] || c).join('');
+}
+function relBrackets(list, colIdx, dir, baseOffset) {
+  // list: [{a,b,label}] a,b = 표시 열 index(0=시,1=일,2=월,3=년)
+  const W = 100 / 4;
+  return list.map((r, i) => {
+    const lo = Math.min(r.a, r.b), hi = Math.max(r.a, r.b);
+    const left = (lo + 0.5) * W, width = (hi - lo) * W;
+    const off = baseOffset + i * 26;
+    const pos = dir === 'up' ? `top:${-off - 10}px` : `bottom:${-off - 10}px`;
+    const tag = dir === 'up' ? `top:-18px` : `bottom:-18px`;
+    return `<div class="rel-bracket ${dir === 'down' ? 'down' : ''}" style="left:${left}%;width:${width}%;${pos}">
+      <span class="rel-tag" style="${tag}">${r.label}</span></div>`;
+  }).join('');
+}
+function parseRelPos(str) { // "...(연·월...)" → 열 index (표시는 시0 일1 월2 년3, 데이터는 연0 월1 일2 시3)
+  const MAP = { 연: 3, 월: 2, 일: 1, 시: 0 };
+  const m = str.match(/([연월일시])·([연월일시])/);
+  return m ? { a: MAP[m[1]], b: MAP[m[2]] } : null;
+}
+function manseGwangye() {
+  const s = window._saju, tu = s.timeUnknown, p = s.pillars;
+  const rt = window._relTab || 'ganji';
+  const subtabs = `<div class="subtabs">
+    <div class="subtab ${rt === 'ganji' ? 'on' : ''}" onclick="switchRelTab('ganji')">천간과 지지</div>
+    <div class="subtab ${rt === 'sinsal' ? 'on' : ''}" onclick="switchRelTab('sinsal')">신살과 길성</div></div>`;
+  const colKeys = ['time', 'day', 'month', 'year'];
+  const colLbls = ['시간', '일간', '월간', '년간'];
+  const colLbls2 = ['시지', '일지', '월지', '년지'];
+  const gTile = (k) => (k === 'time' && tu) ? `<div class="wx-tile tile-big tile-unknown"><div class="han">?</div><div class="sub">모름</div></div>` : tileFull(p[k][0], true);
+  const zTile = (k) => (k === 'time' && tu) ? `<div class="wx-tile tile-big tile-unknown"><div class="han">?</div><div class="sub">모름</div></div>` : tileFull(p[k][1], false);
+  if (rt === 'sinsal') {
+    // 신살을 주(柱)별로 매핑: (지지) 표기는 해당 지지가 있는 주, (X주)는 그 주
+    const per = { time: [], day: [], month: [], year: [] };
+    const rest = [];
+    const KEYIDX = { 연: 'year', 월: 'month', 일: 'day', 시: 'time' };
+    (s.sinsal || []).forEach((sin) => {
+      let m = sin.match(/\(([연월일시])주\)/);
+      if (m) { per[KEYIDX[m[1]]].push(sin.replace(/\(.+\)/, '')); return; }
+      m = sin.match(/\((.)\)/);
+      if (m) {
+        let hit = false;
+        colKeys.forEach((k) => { if (p[k] && p[k][1] === m[1]) { per[k].push(sin.replace(/\(.+\)/, '')); hit = true; } });
+        if (hit) return;
+      }
+      rest.push(sin);
+    });
+    const cellOf = (k) => { const a = per[k]; return `<div class="sinsal-cell ${a.length ? '' : 'none'}">${a.length ? a.join('<br>') : '-'}</div>`; };
+    return subtabs + `<div class="sinsal-table">
+      <div class="rowlbl">지지</div>${colKeys.map((k) => `<div class="tilecell">${zTile(k)}</div>`).join('')}
+      <div class="rowlbl">신살<br>길성</div>${colKeys.map(cellOf).join('')}
+    </div>` + (rest.length ? `<div class="muted" style="margin-top:12px">그 외: ${rest.join(', ')}</div>` : '');
+  }
+  // 천간과 지지 — 괄호 다이어그램
+  const ganRels = [], jiRels = [];
+  (s.ganRel.chung || []).forEach((r) => { const q = parseRelPos(r); if (q) ganRels.push({ ...q, label: hanPairKo(r.slice(0, 2)) + '충' }); });
+  (s.ganRel.hap || []).forEach((r) => { const q = parseRelPos(r); if (q) ganRels.push({ ...q, label: hanPairKo(r.slice(0, 2)) + '합' }); });
+  const JT = [['chung', '충'], ['yukhap', '육합'], ['hyeong', '형'], ['pa', '파'], ['hae', '해']];
+  JT.forEach(([key, nm]) => (s.jiRel[key] || []).forEach((r) => {
+    const q = parseRelPos(r); if (q) jiRels.push({ ...q, label: hanPairKo(r.slice(0, 2)) + nm });
+  }));
+  const upH = ganRels.length ? 20 + ganRels.length * 26 : 8;
+  const dnH = jiRels.length ? 20 + jiRels.length * 26 : 8;
+  const hapChips = [...(s.jiRel.samhap || []), ...(s.jiRel.banhap || []), ...(s.jiRel.banghap || [])]
+    .map((t) => `<span class="pill" style="padding:6px 12px;font-size:12px">${t.split('(')[0]}</span>`).join('');
+  return subtabs + `<div class="rel-diagram">
+    <div style="height:${upH}px"></div>
+    <div class="rel-zone">${relBrackets(ganRels, null, 'up', 8)}
+      <div class="rel-cols">${colLbls.map((l) => `<div class="rel-lbl">${l}</div>`).join('')}</div>
+      <div class="rel-cols">${colKeys.map(gTile).join('')}</div></div>
+    <div style="height:12px"></div>
+    <div class="rel-zone">
+      <div class="rel-cols">${colKeys.map(zTile).join('')}</div>
+      <div class="rel-cols">${colLbls2.map((l) => `<div class="rel-lbl">${l}</div>`).join('')}</div>
+      ${relBrackets(jiRels, null, 'down', 26)}</div>
+    <div style="height:${dnH + 8}px"></div>
+    ${hapChips ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${hapChips}</div>` : ''}
+  </div>`;
+}
+/* 오행별 십성 분해: 8자리(시간모름 6) 전부의 십성 카운트 */
+function sipsinBreakdown(s) {
+  const Sj = window.Saju;
+  const keys = s.timeUnknown ? ['year', 'month', 'day'] : ['year', 'month', 'day', 'time'];
+  const cnt = {}; let total = 0;
+  keys.forEach((k) => {
+    const gz = s.pillars[k]; if (!gz) return;
+    const gs = k === 'day' ? '비견' : Sj.sipsin(s.dayGan, gz[0]); // 일간 = 비견 취급(점신 방식)
+    const zs = s.sip.pillars[k] ? s.sip.pillars[k].zhi : '';
+    [gs, zs].forEach((x) => { if (x) { cnt[x] = (cnt[x] || 0) + 1; total++; } });
+  });
+  return { cnt, total };
+}
+const WX_GROUP_PAIR = { 비겁: ['비견', '겁재'], 식상: ['식신', '상관'], 재성: ['편재', '정재'], 관성: ['편관', '정관'], 인성: ['편인', '정인'] };
+function wxGroupOf(s, o) { // 오행 o가 일간 기준 어느 십성 그룹인지
+  const Sj = window.Saju, d = s.dayWx;
+  if (o === d) return '비겁';
+  if (Sj.SAENG[d] === o) return '식상';
+  if (Sj.GEUK[d] === o) return '재성';
+  if (Sj.GEUK[o] === d) return '관성';
+  if (Sj.SAENG[o] === d) return '인성';
+  return '';
+}
 function manseOhaeng() {
-  const s = window._saju, cx = 150, cy = 150, R = 100, r = 30;
+  const s = window._saju, cx = 150, cy = 148, R = 100, r = 33;
   const order = ['금', '수', '목', '화', '토'];
   const pos = order.map((o, i) => { const a = (-90 + i * 72) * Math.PI / 180; return { o, x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) }; });
-  const pct = (o) => Math.round((s.count[o] / (s.total || 8)) * 100);
-  const arrow = (p1, p2, dash) => {
+  const pctOf = (o) => Math.round((s.count[o] / (s.total || 8)) * 1000) / 10;
+  // 화살표: 상생 = 실선(진회색, 바깥 링), 상극 = 점선(연회색, 안쪽 별)
+  const arrow = (p1, p2, dash, col, gap) => {
     const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
-    const x1 = p1.x + ux * r, y1 = p1.y + uy * r, x2 = p2.x - ux * (r + 6), y2 = p2.y - uy * (r + 6);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#C4C9D4" stroke-width="2" ${dash ? 'stroke-dasharray="4 4"' : ''} marker-end="url(#ah)"/>`;
+    const x1 = p1.x + ux * (r + gap), y1 = p1.y + uy * (r + gap), x2 = p2.x - ux * (r + gap + 6), y2 = p2.y - uy * (r + gap + 6);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.6" ${dash ? 'stroke-dasharray="3 4"' : ''} marker-end="url(#${dash ? 'ahg' : 'ahd'})"/>`;
   };
   let saeng = '', geuk = '';
-  for (let i = 0; i < 5; i++) saeng += arrow(pos[i], pos[(i + 1) % 5], false);
-  for (let i = 0; i < 5; i++) geuk += arrow(pos[i], pos[(i + 2) % 5], true);
+  for (let i = 0; i < 5; i++) saeng += arrow(pos[i], pos[(i + 1) % 5], false, '#6A6F7E', 2);
+  for (let i = 0; i < 5; i++) geuk += arrow(pos[i], pos[(i + 2) % 5], true, '#C9CCD5', 2);
+  const WXFILL = { 목: '#4C7DFF', 화: '#FF6B6B', 토: '#FFC94D', 금: '#B9BEC9', 수: '#26282F' };
   const circles = pos.map((pp) => {
-    const dark = (pp.o === '토' || pp.o === '금') ? '#3a3a3a' : '#fff';
-    return `<circle cx="${pp.x}" cy="${pp.y}" r="${r}" fill="${WXHEX[pp.o]}" opacity="${s.count[pp.o] ? 1 : 0.28}"/>
-      <text x="${pp.x}" y="${pp.y - 3}" text-anchor="middle" font-size="15" font-weight="800" fill="${dark}">${pp.o}</text>
-      <text x="${pp.x}" y="${pp.y + 14}" text-anchor="middle" font-size="11" font-weight="700" fill="${dark}">${pct(pp.o)}%</text>`;
+    const pct = pctOf(pp.o);
+    const fillH = Math.max(0, Math.min(1, pct / 100)) * (r * 2);
+    const clipId = `wxc-${pp.o}`;
+    // 흰 원 + 아래에서 차오르는 오행색 + 큰 % + 하단 오행 뱃지
+    return `<clipPath id="${clipId}"><circle cx="${pp.x}" cy="${pp.y}" r="${r - 1}"/></clipPath>
+      <circle cx="${pp.x}" cy="${pp.y}" r="${r}" fill="#fff" stroke="#E2E4EA" stroke-width="1.5"/>
+      <rect x="${pp.x - r}" y="${pp.y + r - fillH}" width="${r * 2}" height="${fillH}" fill="${WXFILL[pp.o]}" opacity="0.9" clip-path="url(#${clipId})"/>
+      <text x="${pp.x}" y="${pp.y + 1}" text-anchor="middle" font-size="14.5" font-weight="800" fill="${pct >= 62 ? '#fff' : '#17181D'}">${pct}%</text>
+      <g><rect x="${pp.x - 11}" y="${pp.y + r - 12}" width="22" height="20" rx="6" fill="${WXFILL[pp.o]}" stroke="${pp.o === '토' ? '#F0B72E' : 'none'}"/>
+      <text x="${pp.x}" y="${pp.y + r + 3}" text-anchor="middle" font-size="12" font-weight="900" fill="${pp.o === '토' ? '#4A3400' : (pp.o === '금' ? '#26282F' : '#fff')}">${WX_HANJA[pp.o]}</text></g>`;
   }).join('');
-  const svg = `<svg viewBox="0 0 300 300" style="width:100%;max-width:300px;display:block;margin:6px auto 4px">
-    <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#C4C9D4"/></marker></defs>
-    ${geuk}${saeng}${circles}</svg>`;
-  const legend = `<div style="display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--ink-3);margin-bottom:8px"><span>실선 → 상생</span><span>점선 ⇢ 상극</span></div>`;
-  const gc = s.sip.groupCount || {};
-  const gcRows = Object.keys(gc).filter((k) => gc[k]).map((k) => `<span class="pill" style="box-shadow:none;background:var(--surface-2);padding:6px 12px">${k} ${gc[k]}</span>`).join('');
-  return svg + legend + `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px">${gcRows}</div>`;
+  const svg = `<svg viewBox="0 0 300 300" style="width:100%;max-width:290px;display:block;margin:0 auto">
+    <defs>
+      <marker id="ahd" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#6A6F7E"/></marker>
+      <marker id="ahg" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="#C9CCD5"/></marker>
+    </defs>${geuk}${saeng}${circles}</svg>`;
+  const legend = `<div class="legend-row" style="justify-content:flex-start;margin:-4px 0 6px">
+    <span>생 <svg width="26" height="8" style="display:inline"><line x1="0" y1="4" x2="20" y2="4" stroke="#6A6F7E" stroke-width="1.6"/><path d="M20 1l5 3-5 3z" fill="#6A6F7E"/></svg></span>
+    <span>극 <svg width="26" height="8" style="display:inline"><line x1="0" y1="4" x2="20" y2="4" stroke="#C9CCD5" stroke-width="1.6" stroke-dasharray="3 3"/><path d="M20 1l5 3-5 3z" fill="#C9CCD5"/></svg></span></div>`;
+  // 오행별 리스트: 그룹명 + 상태 뱃지 + 십성 2개 %
+  const bd = sipsinBreakdown(s);
+  const pctS = (nm) => (Math.round(((bd.cnt[nm] || 0) / (bd.total || 8)) * 1000) / 10).toFixed(1) + '%';
+  const rows = ['목', '화', '토', '금', '수'].map((o) => {
+    const grp = wxGroupOf(s, o), pair = WX_GROUP_PAIR[grp] || [];
+    const pct = pctOf(o);
+    const state = pct <= 12.5 ? ['부족', 'lack'] : pct > 37.5 ? ['과다', 'excess'] : ['적정', 'ok'];
+    return `<div class="wx-row">
+      <span class="wx-chip wx-${o}">${WX_HANJA[o]}</span>
+      <span class="nm">${o}(${grp})</span>
+      <span class="bdg ${state[1]}">${state[0]}</span>
+      <span class="sips">${pair.map((nm) => `${nm} <b>${pctS(nm)}</b>`).join('<br>')}</span>
+    </div>`;
+  }).join('');
+  return legend + svg + `<div style="margin-top:14px">${rows}</div>`;
 }
 function manseShin() {
   const s = window._saju;
@@ -395,34 +570,44 @@ function manseShin() {
   const support = s.count[s.dayWx] + s.count[gb(s.dayWx)];
   const score = Math.max(4, Math.min(96, Math.round((support / (s.total || 8)) * 100)));
   const band = score >= 61 ? '신강' : score >= 40 ? '중화' : '신약';
-  const bandColor = score >= 61 ? '#4B7BF5' : score >= 40 ? '#FF8A5B' : '#FFC94D';
   const cx = 150, cy = 150, R = 110;
+  const BANDC = { 신약: '#FFD84D', 중화: '#FF8A5B', 신강: '#4C7DFF' };
   const ang = Math.PI - (score / 100) * Math.PI;
   const px = cx + R * Math.cos(ang), py = cy - R * Math.sin(ang);
   const arc = (col, from, to) => {
     const a1 = Math.PI - from / 100 * Math.PI, a2 = Math.PI - to / 100 * Math.PI;
     const x1 = cx + R * Math.cos(a1), y1 = cy - R * Math.sin(a1), x2 = cx + R * Math.cos(a2), y2 = cy - R * Math.sin(a2);
-    return `<path d="M${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}" stroke="${col}" stroke-width="16" fill="none" stroke-linecap="round"/>`;
+    return `<path d="M${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2}" stroke="${col}" stroke-width="15" fill="none" stroke-linecap="round"/>`;
   };
-  const svg = `<svg viewBox="0 0 300 175" style="width:100%;max-width:320px;display:block;margin:0 auto">
-    ${arc('#FFE08A', 0, 39)}${arc('#FFB27A', 40, 60)}${arc('#8FB0FF', 61, 100)}
-    <circle cx="${px}" cy="${py}" r="10" fill="${bandColor}" stroke="#fff" stroke-width="3"/>
-    <text x="150" y="120" text-anchor="middle" font-size="46" font-weight="900" fill="${bandColor}">${score}</text>
-    <text x="150" y="145" text-anchor="middle" font-size="14" fill="#8A8FA3">${band}한 사주입니다</text></svg>`;
-  const legend = `<div style="display:flex;justify-content:center;gap:18px;margin:6px 0 4px;font-size:12px"><span>🟡 신약 <span class="muted">0~39</span></span><span>🟠 중화 <span class="muted">40~60</span></span><span>🔵 신강 <span class="muted">61~</span></span></div>`;
-  const info = `<div class="muted" style="text-align:center;line-height:1.6;margin-top:6px">${s.reason}<br/>일간 ${s.dayGan}(${s.dayWx}) · ${s.tti}띠 · 신살 ${(s.sinsal || []).join(', ') || '없음'}</div>`;
+  const svg = `<svg viewBox="0 0 300 172" style="width:100%;max-width:320px;display:block;margin:4px auto 0">
+    ${arc('#FFE895', 0, 38)}${arc('#FFC5A3', 41, 59)}${arc('#B9CDFF', 62, 100)}
+    <circle cx="${px}" cy="${py}" r="9" fill="${BANDC[band]}" stroke="#fff" stroke-width="3"/>
+    <text x="150" y="118" text-anchor="middle" font-size="48" font-weight="900" fill="#17181D">${score}</text>
+    <text x="150" y="144" text-anchor="middle" font-size="13.5" fill="#9CA0AC">${band}한 사주입니다</text></svg>`;
+  const legend = `<div class="legend-row" style="margin:10px 0 4px">
+    <span><span class="dot" style="background:${BANDC.신약}"></span>신약 <span class="muted">0~39</span></span>
+    <span><span class="dot" style="background:${BANDC.중화}"></span>중화 <span class="muted">40~60</span></span>
+    <span><span class="dot" style="background:${BANDC.신강}"></span>신강 <span class="muted">61~</span></span></div>`;
+  const info = `<div class="divider"></div><div class="muted" style="text-align:center;line-height:1.7">${s.reason}<br/>일간 ${s.dayGan}(${s.dayWx}) · ${s.tti}띠</div>`;
   return svg + legend + info;
 }
 function manseDaewoon() {
   const s = window._saju;
-  const cell = (d, cur) => `<div style="flex:0 0 auto;text-align:center;padding:6px 4px;${cur ? 'background:var(--primary-soft);border-radius:12px' : ''}">
-    <div class="muted" style="font-size:11px">${d.startAge}세</div>
-    <div style="font-size:10px;color:var(--ink-3);margin-bottom:3px">${d.sipsin || ''}</div>
-    ${tile(d.gan, true, 40)}<div style="height:4px"></div>${tile(d.zhi, false, 40)}</div>`;
-  const dw = (s.daewoonList || []).slice(0, 9).map((d) => cell(d, s.daewoon && s.daewoon.startAge === d.startAge)).join('');
-  const sw = s.sewoon ? `<div class="muted" style="margin-top:12px;text-align:center">올해 세운 <b style="color:var(--ink)">${s.sewoon.year} ${s.sewoon.ganzhi}</b> (${s.sewoon.sipsin})</div>` : '';
-  return `<div class="section-head" style="margin:0 0 10px"><h3 style="font-size:15px">대운</h3></div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px">${dw}</div>${sw}`;
+  const tlTile = (ch, isGan) => {
+    const w = wxOf(ch, isGan), ko = (isGan ? GAN_KO : ZHI_KO)[ch] || '';
+    return `<div class="tl-tile wx-tile wx-${w}"><span class="han">${ch}</span><span class="ko">${ko}</span></div>`;
+  };
+  const cell = (d, cur) => `<div class="tl-cell ${cur ? 'cur' : ''}">
+    <div class="age">${d.startAge}</div>
+    <div class="sip">${d.sipsin || ''}</div>
+    ${tlTile(d.gan, true)}${tlTile(d.zhi, false)}
+  </div>`;
+  const dw = (s.daewoonList || []).slice(0, 10).reverse().map((d) => cell(d, s.daewoon && s.daewoon.startAge === d.startAge)).join('');
+  const sw = s.sewoon ? `<div class="divider"></div>
+    <div class="section-head" style="margin:0 0 8px"><h3 style="font-size:15px">세운</h3></div>
+    <div class="muted">올해 <b style="color:var(--ink);font-size:14px">${s.sewoon.year} ${s.sewoon.ganzhi}</b> (${s.sewoon.sipsin}) — 연도별 타임라인 준비 중</div>` : '';
+  return `<div class="sec-kicker" style="margin-bottom:2px">대운(만 나이)</div>
+    <div class="timeline" id="dwTimeline">${dw}</div>${sw}`;
 }
 
 /* ── 프롬프트 ── */
@@ -538,6 +723,22 @@ function mdLite(t) {
   }).join('');
 }
 
+// ── 바텀시트(도움말) ──
+function openSheet(key) {
+  const h = TAB_HELP[key]; if (!h) return;
+  closeSheet();
+  const bg = document.createElement('div'); bg.className = 'sheet-bg'; bg.id = 'sheetBg'; bg.onclick = closeSheet;
+  const sh = document.createElement('div'); sh.className = 'sheet'; sh.id = 'sheetBox';
+  sh.innerHTML = `<div class="sheet-x" onclick="closeSheet()">✕</div>
+    <div class="sheet-title">${h[0]}</div>
+    <div class="sheet-body">${h[1]}</div>
+    <button class="btn" onclick="closeSheet()">확인</button>`;
+  document.body.appendChild(bg); document.body.appendChild(sh);
+}
+function closeSheet() {
+  ['sheetBg', 'sheetBox'].forEach((id) => { const el = document.getElementById(id); if (el) el.remove(); });
+}
+
 // ── 비밀번호 게이트 (1212) ──
 function passwordGate() {
   if (sessionStorage.getItem('sj_auth') === '1') return;
@@ -559,4 +760,4 @@ function pwCheck() {
 }
 
 renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, pwCheck, nPopSeong, nPopName, runName, runNewyear });
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
