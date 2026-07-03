@@ -197,16 +197,28 @@ function runFace() {
 }
 // ── 꿈해몽 ──
 const DREAM_CHIPS = ['🐍 뱀 꿈', '💧 물·바다 꿈', '🦷 이빨 빠지는 꿈', '💰 돈 줍는 꿈', '🏃 쫓기는 꿈', '⚰️ 죽음 꿈', '🤰 임신 꿈', '🔥 불나는 꿈', '📝 시험 꿈', '💩 똥 꿈'];
+const DREAM_EMOTIONS = ['무서웠어요', '불안했어요', '편안했어요', '통쾌했어요', '슬펐어요', '얼떨떨했어요'];
 function renderDreamForm(f) {
   const chips = DREAM_CHIPS.map((c) => `<span class="pill" style="cursor:pointer" onclick="dreamChip('${c.replace(/^\S+ /, '')}')">${c}</span>`).join('');
+  const emos = DREAM_EMOTIONS.map((e) => `<span class="pill dream-emo" style="cursor:pointer" onclick="dreamEmo(this,'${e}')">${e}</span>`).join('');
   $('view-reading').innerHTML = detailHead('꿈해몽') + `<div class="card" id="birthFormCard">
     <div class="sec-kicker">자주 찾는 꿈</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 14px">${chips}</div>
     <label class="field-label">어젯밤 꿈
-      <textarea id="fDream" rows="5" class="input" placeholder="꿈 내용을 자유롭게 적어주세요.&#10;예) 큰 구렁이가 집 안으로 들어와서 나를 물었어요"></textarea></label>
-    <button class="btn" style="margin-top:14px" onclick="runDream()">꿈 풀이 보기</button>
+      <textarea id="fDream" rows="5" class="input" placeholder="꿈 내용을 꾸미지 말고 기억나는 그대로 적어주세요.&#10;예) 큰 구렁이가 집 안으로 들어와서 나를 물었어요"></textarea></label>
+    <div class="field-label" style="margin-top:14px">꿈속에서 기분이 어땠나요? <span class="muted">(선택)</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 2px">${emos}</div>
+    <label class="field-label" style="margin-top:12px">요즘 마음에 걸리는 일 <span class="muted">(선택 — 풀이가 더 깊어져요)</span>
+      <input id="fResidue" class="input" placeholder="예) 이직 고민 중이에요" /></label>
+    <button class="btn" style="margin-top:16px" onclick="runDream()">꿈 풀이 보기</button>
   </div><div id="profileMini"></div><div id="sajuResult"></div>`;
   showView('reading');
+}
+function dreamEmo(el, e) {
+  const on = el.classList.contains('on');
+  document.querySelectorAll('.dream-emo').forEach((x) => { x.classList.remove('on'); x.style.cssText = 'cursor:pointer'; });
+  if (!on) { el.classList.add('on'); el.style.cssText = 'cursor:pointer;background:var(--ink);color:#fff;border-color:var(--ink)'; }
+  window._dreamEmo = on ? '' : e;
 }
 function dreamChip(t) {
   const ta = $('fDream');
@@ -216,11 +228,36 @@ function dreamChip(t) {
 const DREAM_MOOD = { 길몽: ['길몽', 'ok'], 중립: ['중립', 'neutral'], 주의: ['참고', 'warn'] };
 function runDream() {
   const t = ($('fDream').value || '').trim(); if (!t) { alert('꿈 내용을 입력해주세요'); return; }
-  $('sajuResult').innerHTML = aiLoading('해몽 중…');
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: dreamPrompt(t) }) })
+  const m = window.DreamDB.match(t);
+  window._dreamMatches = m;
+  $('sajuResult').innerHTML = aiLoading('전통 해몽 근거 대조 중…');
+  const emo = window._dreamEmo || '', residue = ($('fResidue') && $('fResidue').value || '').trim();
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: dreamPrompt(t, window.DreamDB.evidence(m), emo, residue) }) })
     .then((r) => r.json())
     .then((j) => renderDreamResult(j.text || '', t))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
+}
+/* 근거 카드: 어떤 전통 근거로 풀이했는지 표시 (검수·신뢰용) */
+function dreamEvidenceCard(m) {
+  if (!m || (!m.combos.length && !m.symbols.length && !m.situations.length)) return '';
+  const tag = (t, cls) => `<span class="bdg ${cls}" style="font-size:10px">${t}</span>`;
+  const row = (title, mean, zg, fk) => `<div style="padding:11px 0;border-bottom:1px dotted var(--line-2)">
+    <div style="font-size:13.5px;font-weight:800;margin-bottom:3px">${title}</div>
+    <div style="font-size:12.5px;color:var(--ink-mid);line-height:1.65">${mean}</div>
+    ${zg ? `<div class="muted" style="margin-top:5px;line-height:1.6">『주공해몽』 ${zg}</div>` : ''}
+    ${fk ? `<div class="muted" style="margin-top:3px;line-height:1.6">민속대백과 · ${fk}</div>` : ''}</div>`;
+  const DB = window.DreamDB;
+  let rows = '';
+  m.combos.forEach((c) => {
+    const s = DB.symbols.find((x) => x.id === c.sym), t = DB.situations.find((x) => x.id === c.sit);
+    rows += row(`${s.name} + ${t.name} ${tag(c.pol === '길' ? '길몽' : c.pol === '주의' ? '참고' : '중립', c.pol === '길' ? 'ok' : c.pol === '주의' ? 'warn' : 'neutral')}`, c.mean, c.zg, c.fk);
+  });
+  m.symbols.forEach((s) => { if (!m.combos.some((c) => c.sym === s.id)) rows += row(s.name, s.mean, s.zg, s.fk); });
+  m.situations.forEach((s) => { if (!m.combos.some((c) => c.sit === s.id)) rows += row(s.name, s.mean, s.zg, ''); });
+  return `<div class="card">
+    <div class="section-head" style="margin:0 0 4px"><h3 style="font-size:15px">해몽 근거</h3></div>
+    <div class="muted" style="margin-bottom:4px">『주공해몽』(원문)과 한국민속대백과사전의 전통 해몽을 기준으로 풀이했어요.</div>
+    ${rows}</div>`;
 }
 function renderDreamResult(text, dreamText) {
   const card = $('birthFormCard'); if (card) card.classList.add('hidden');
@@ -240,7 +277,7 @@ function renderDreamResult(text, dreamText) {
       <div class="muted" style="flex:1;line-height:1.6">"${dreamText.length > 80 ? dreamText.slice(0, 80) + '…' : dreamText}"</div>
       <span class="pill-btn" onclick="expandForm()">다시 풀기</span></div>
   </div>`;
-  $('sajuResult').innerHTML = header + `<div class="card md">${mdLite(body)}</div>`;
+  $('sajuResult').innerHTML = header + `<div class="card md">${mdLite(body)}</div>` + dreamEvidenceCard(window._dreamMatches);
   window.scrollTo(0, 0);
 }
 
@@ -729,17 +766,23 @@ function teenPrompt(s) {
 ## 이 시기 응원
 [자녀 사주] ${sajuLine(s)} / 10대 대운 ${dw || (s.daewoon ? s.daewoon.ganzhi : '')}`;
 }
-function dreamPrompt(text) {
-  return `너는 전통 꿈해몽과 상징 해석에 능한 상담가다. 아래 꿈을 풀이해줘. 마크다운(## 제목, **굵게**).
+function dreamPrompt(text, evidence, emotion, residue) {
+  const psySec = (emotion || residue) ? '\n## 마음 읽기 (심리 관점)' : '';
+  const psyRule = (emotion || residue) ? `\n- "마음 읽기" 섹션: 꿈속 감정과 최근 상황을 근거로, 꿈이 지금 마음 상태를 어떻게 비추는지 1문단 (프로이트식 소망, 융식 보상 관점을 쉬운 말로. 학술용어 금지).` : '';
+  return `너는 전통 꿈해몽 전문가다. 아래 [전통 해몽 근거]를 반드시 중심 기준으로 삼아 꿈을 풀이해라. 근거에 없는 상징만 일반 통념으로 보완. 마크다운(## 제목, **굵게**).
 반드시 첫 두 줄에 아래 형식으로만 출력하고 줄바꿈:
-MOOD 길몽|중립|주의 (셋 중 하나. 흉몽 단정 대신 '주의' 사용)
+MOOD 길몽|중립|주의 (셋 중 하나. [전통 해몽 근거]의 길/주의 판정을 우선 반영. 흉몽 단정 대신 '주의')
 KEYWORDS 상징1,상징2,상징3 (꿈에 나온 핵심 상징 단어 2~4개, 쉼표 구분)
 그 다음 섹션(각 1~2문단, 구어체 공감 톤):
 ## 꿈의 핵심 상징
 ## 해몽 (상징별 의미)
-## 운의 흐름
+## 운의 흐름${psySec}
 ## 조언 한마디
+- 해몽 섹션에서는 근거의 원문 풀이를 자연스럽게 인용 (예: 전통 해몽에서는 '뱀이 품에 들면 귀한 자식을 낳는다'고 했어요).${psyRule}
 - 단정적 흉몽 규정 금지, '~을 뜻할 수 있어요' 톤. 마지막은 반드시 긍정 조언으로.
+[전통 해몽 근거]
+${evidence || '(매칭된 근거 없음 — 일반 전통 통념으로 풀이하되 과장 금지)'}
+${emotion ? `[꿈속 감정] ${emotion}` : ''}${residue ? `\n[최근 상황] ${residue}` : ''}
 [꿈 내용] ${text}`;
 }
 function gwansangPrompt() {
@@ -799,4 +842,4 @@ function pwCheck() {
 }
 
 renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, dreamEmo, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
