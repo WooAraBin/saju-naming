@@ -201,7 +201,7 @@ function renderDreamForm(f) {
   const chips = DREAM_CHIPS.map((c) => `<span class="pill" style="cursor:pointer" onclick="dreamChip('${c.replace(/^\S+ /, '')}')">${c}</span>`).join('');
   $('view-reading').innerHTML = detailHead('꿈해몽') + `<div class="card" id="birthFormCard">
     <div class="sec-kicker">자주 찾는 꿈</div>
-    <div class="quick-row" style="padding:8px 0 14px">${chips}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 14px">${chips}</div>
     <label class="field-label">어젯밤 꿈
       <textarea id="fDream" rows="5" class="input" placeholder="꿈 내용을 자유롭게 적어주세요.&#10;예) 큰 구렁이가 집 안으로 들어와서 나를 물었어요"></textarea></label>
     <button class="btn" style="margin-top:14px" onclick="runDream()">꿈 풀이 보기</button>
