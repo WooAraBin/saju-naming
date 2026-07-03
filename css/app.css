@@ -264,6 +264,8 @@ svg { display: block; }
 .bdg.lack { background: var(--ink); }
 .bdg.excess { background: var(--red); }
 .bdg.ok { background: var(--blue); }
+.bdg.warn { background: var(--orange); }
+.bdg.neutral { background: var(--ink-soft); }
 
 /* ── 오행 리스트 행 ── */
 .wx-row {

@@ -195,19 +195,53 @@ function runFace() {
   $('sajuResult').innerHTML = aiLoading('관상 분석 중… (20~40초)');
   callAI(gwansangPrompt(), window._faceImg);
 }
-// 꿈해몽
+// ── 꿈해몽 ──
+const DREAM_CHIPS = ['🐍 뱀 꿈', '💧 물·바다 꿈', '🦷 이빨 빠지는 꿈', '💰 돈 줍는 꿈', '🏃 쫓기는 꿈', '⚰️ 죽음 꿈', '🤰 임신 꿈', '🔥 불나는 꿈', '📝 시험 꿈', '💩 똥 꿈'];
 function renderDreamForm(f) {
-  $('view-reading').innerHTML = detailHead('꿈해몽') + `<div class="card">
-    <label style="font-size:13px;font-weight:700;color:var(--ink-2)">어젯밤 꿈
-      <textarea id="fDream" rows="5" placeholder="꿈 내용을 자유롭게 적어주세요" style="width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit"></textarea></label>
-    <button class="btn" style="margin-top:12px" onclick="runDream()">꿈 풀이 보기</button>
-  </div><div id="sajuResult"></div>`;
+  const chips = DREAM_CHIPS.map((c) => `<span class="pill" style="cursor:pointer" onclick="dreamChip('${c.replace(/^\S+ /, '')}')">${c}</span>`).join('');
+  $('view-reading').innerHTML = detailHead('꿈해몽') + `<div class="card" id="birthFormCard">
+    <div class="sec-kicker">자주 찾는 꿈</div>
+    <div class="quick-row" style="padding:8px 0 14px">${chips}</div>
+    <label class="field-label">어젯밤 꿈
+      <textarea id="fDream" rows="5" class="input" placeholder="꿈 내용을 자유롭게 적어주세요.&#10;예) 큰 구렁이가 집 안으로 들어와서 나를 물었어요"></textarea></label>
+    <button class="btn" style="margin-top:14px" onclick="runDream()">꿈 풀이 보기</button>
+  </div><div id="profileMini"></div><div id="sajuResult"></div>`;
   showView('reading');
 }
+function dreamChip(t) {
+  const ta = $('fDream');
+  ta.value = (ta.value ? ta.value.trim() + '\n' : '') + t.replace(' 꿈', '') + ' 꿈을 꿨어요. ';
+  ta.focus();
+}
+const DREAM_MOOD = { 길몽: ['길몽', 'ok'], 중립: ['중립', 'neutral'], 주의: ['참고', 'warn'] };
 function runDream() {
   const t = ($('fDream').value || '').trim(); if (!t) { alert('꿈 내용을 입력해주세요'); return; }
   $('sajuResult').innerHTML = aiLoading('해몽 중…');
-  callAI(dreamPrompt(t));
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: dreamPrompt(t) }) })
+    .then((r) => r.json())
+    .then((j) => renderDreamResult(j.text || '', t))
+    .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
+}
+function renderDreamResult(text, dreamText) {
+  const card = $('birthFormCard'); if (card) card.classList.add('hidden');
+  const mm = text.match(/MOOD\s+(길몽|중립|주의)/);
+  const km = text.match(/KEYWORDS\s+([^\n]+)/);
+  const body = text.replace(/MOOD[^\n]*\n?/, '').replace(/KEYWORDS[^\n]*\n?/, '').trim();
+  const mood = mm ? DREAM_MOOD[mm[1]] : null;
+  const kws = km ? km[1].split(',').map((s) => s.trim()).filter(Boolean).slice(0, 4) : [];
+  const header = `<div class="card">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:34px;height:34px;color:var(--ink)">${ICONS.dream}</div>
+      <div style="flex:1;font-weight:800;font-size:16px">꿈해몽 결과</div>
+      ${mood ? `<span class="bdg ${mood[1]}" style="font-size:12px;padding:5px 11px">${mood[0]}</span>` : ''}</div>
+    ${kws.length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">${kws.map((k) => `<span class="pill" style="padding:7px 13px;font-size:12.5px">#${k}</span>`).join('')}</div>` : ''}
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="muted" style="flex:1;line-height:1.6">"${dreamText.length > 80 ? dreamText.slice(0, 80) + '…' : dreamText}"</div>
+      <span class="pill-btn" onclick="expandForm()">다시 풀기</span></div>
+  </div>`;
+  $('sajuResult').innerHTML = header + `<div class="card md">${mdLite(body)}</div>`;
+  window.scrollTo(0, 0);
 }
 
 // ── 신년운세 ──
@@ -696,11 +730,16 @@ function teenPrompt(s) {
 [자녀 사주] ${sajuLine(s)} / 10대 대운 ${dw || (s.daewoon ? s.daewoon.ganzhi : '')}`;
 }
 function dreamPrompt(text) {
-  return `너는 전통 꿈해몽과 상징 해석에 능한 상담가다. 아래 꿈을 풀이해줘. 마크다운(## 제목). 단정적 흉몽 규정은 피하고 '~을 뜻할 수 있어요' 톤, 마지막은 긍정 조언.
+  return `너는 전통 꿈해몽과 상징 해석에 능한 상담가다. 아래 꿈을 풀이해줘. 마크다운(## 제목, **굵게**).
+반드시 첫 두 줄에 아래 형식으로만 출력하고 줄바꿈:
+MOOD 길몽|중립|주의 (셋 중 하나. 흉몽 단정 대신 '주의' 사용)
+KEYWORDS 상징1,상징2,상징3 (꿈에 나온 핵심 상징 단어 2~4개, 쉼표 구분)
+그 다음 섹션(각 1~2문단, 구어체 공감 톤):
 ## 꿈의 핵심 상징
 ## 해몽 (상징별 의미)
-## 길흉·흐름
+## 운의 흐름
 ## 조언 한마디
+- 단정적 흉몽 규정 금지, '~을 뜻할 수 있어요' 톤. 마지막은 반드시 긍정 조언으로.
 [꿈 내용] ${text}`;
 }
 function gwansangPrompt() {
@@ -760,4 +799,4 @@ function pwCheck() {
 }
 
 renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
