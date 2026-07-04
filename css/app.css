@@ -489,3 +489,7 @@ svg { display: block; }
   border-left: 4px solid var(--c); border-radius: 8px; padding: 4px 6px 4px 9px; }
 .oh-del { border: none; background: none; color: var(--ink-faint); font-size: 15px; cursor: pointer; line-height: 1; padding: 0 2px; }
 .oh-del:hover { color: var(--red); }
+
+.oh-elem-row { display: flex; gap: 9px; justify-content: center; align-items: flex-end; }
+.oh-elem-row img { filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+.ohaeng-band .ob-txt .oh-elem-row { margin-top: 8px; justify-content: flex-start; }

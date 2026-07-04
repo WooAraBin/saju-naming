@@ -72,8 +72,8 @@ function renderHome() {
     <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
     <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
     <div class="ohaeng-band" onclick="openOhaeng()">
-      <img src="img/sasin/ohaeng.png" alt="오행" />
-      <div class="ob-txt"><b>오행 (五行) 그래프</b><span>내 오행이 얼마나 찼는지 오각형으로 · 저장·비교</span></div>
+      <div class="ob-txt"><b>오행 (五行) 그래프</b><span>내 오행이 얼마나 찼는지 오각형으로 · 저장·비교</span>
+        ${ohElemRow(38)}</div>
       <div class="ob-go">›</div>
     </div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
@@ -501,6 +501,12 @@ const OH_ORDER = ['목', '화', '토', '금', '수'];
 const OH_HANJA = { 목: '木', 화: '火', 토: '土', 금: '金', 수: '水' };
 const OH_COLORS = { 목: '#2E9E5B', 화: '#E8443A', 토: '#D6A43C', 금: '#8A94A6', 수: '#3E7BE0' };
 const OH_PALETTE = ['#7C6BE7', '#E8557A', '#2E9E5B', '#E8843A', '#3E7BE0', '#8A5AD6', '#12B5A6', '#D4472F'];
+const OH_FILE = { 목: 'mok', 화: 'hwa', 토: 'to', 금: 'geum', 수: 'su' };
+const OH_IMG = {};
+OH_ORDER.forEach((o) => { const im = new Image(); im.src = `img/sasin/elem/${OH_FILE[o]}.png`; im.onload = () => { Object.values(_ohCharts).forEach((c) => { try { c && c.draw(); } catch (e) {} }); }; OH_IMG[o] = im; });
+function ohElemRow(size) {
+  return `<div class="oh-elem-row">${OH_ORDER.map((o) => `<img src="img/sasin/elem/${OH_FILE[o]}.png" alt="${OH_HANJA[o]}" style="height:${size}px" />`).join('')}</div>`;
+}
 const _ohCharts = {};
 let _ohLast = null;
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
@@ -508,7 +514,7 @@ function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n 
 function openOhaeng() { renderOhaengForm(); }
 function renderOhaengForm() {
   $('view-reading').innerHTML = detailHead('오행 그래프') +
-    `<div class="card" style="text-align:center;padding:14px 14px 12px"><img src="img/sasin/ohaeng.png" alt="오행" style="height:88px" /><div class="muted" style="font-size:12.5px;margin-top:4px">목·화·토·금·수 — 내 사주 오행이 얼마나 찼는지 오각형으로 봅니다</div></div>` +
+    `<div class="card" style="text-align:center;padding:16px 14px 12px">${ohElemRow(56)}<div class="muted" style="font-size:12.5px;margin-top:6px">목·화·토·금·수 — 내 사주 오행이 얼마나 찼는지 오각형으로 봅니다</div></div>` +
     birthFields(false) +
     `<label class="field-label" style="margin-top:12px">이름/별명 <span class="muted" style="font-weight:400">(저장·비교용)</span><input id="ohName" class="input" placeholder="예: 나, 김도근" /></label>
      <button class="btn" style="margin-top:14px" onclick="runOhaeng()">오행 그래프 보기</button></div>
@@ -537,16 +543,22 @@ function drawOhRadar(id, people) {
   const badge = { id: 'ohBadge', afterDraw(chart) {
     const s = chart.scales.r; if (!s) return; const ctx = chart.ctx;
     OH_ORDER.forEach((o, i) => {
-      const ang = (i * 2 * Math.PI / 5) - Math.PI / 2, r = s.drawingArea + 17;
+      const ang = (i * 2 * Math.PI / 5) - Math.PI / 2, r = s.drawingArea + 20;
       const x = s.xCenter + r * Math.cos(ang), y = s.yCenter + r * Math.sin(ang);
-      ctx.save(); ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fillStyle = OH_COLORS[o]; ctx.fill();
-      ctx.fillStyle = (o === '금') ? '#2A2E38' : '#fff'; ctx.font = 'bold 15px Georgia, serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(OH_HANJA[o], x, y + 1); ctx.restore();
+      const im = OH_IMG[o], D = 38;
+      if (im && im.complete && im.naturalWidth) {
+        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1;
+        ctx.drawImage(im, x - D / 2, y - D / 2, D, D); ctx.restore();
+      } else { // 로드 전 폴백: 오방색 한자 마크
+        ctx.save(); ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fillStyle = OH_COLORS[o]; ctx.fill();
+        ctx.fillStyle = (o === '금') ? '#2A2E38' : '#fff'; ctx.font = 'bold 15px Georgia, serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(OH_HANJA[o], x, y + 1); ctx.restore();
+      }
     });
   } };
   if (_ohCharts[id]) _ohCharts[id].destroy();
   _ohCharts[id] = new Chart($(id), { type: 'radar', data: { labels: OH_ORDER, datasets },
-    options: { layout: { padding: 22 }, scales: { r: { min: 0, max: 100,
+    options: { layout: { padding: 30 }, scales: { r: { min: 0, max: 100,
       ticks: { stepSize: 20, display: false }, pointLabels: { display: false },
       grid: { color: '#E5E7EE' }, angleLines: { color: '#E5E7EE' } } },
       plugins: { legend: { display: people.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
