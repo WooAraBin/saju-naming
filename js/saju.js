@@ -296,4 +296,61 @@ function computeSaju(opt) {
   };
 }
 
-window.Saju = { computeSaju, sipsin, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };
+/* =========================================================================
+ * 세운(신년운세) · 일진(오늘의 운세) · 삼재 · 태세충
+ * ========================================================================= */
+// 삼재(三災) — 띠(연지) 삼합국별 삼재 3년 지지. 들→눌→날 순.
+const SAMJAE_TRIPLE = {
+  申:['寅','卯','辰'], 子:['寅','卯','辰'], 辰:['寅','卯','辰'],
+  寅:['申','酉','戌'], 午:['申','酉','戌'], 戌:['申','酉','戌'],
+  巳:['亥','子','丑'], 酉:['亥','子','丑'], 丑:['亥','子','丑'],
+  亥:['巳','午','未'], 卯:['巳','午','未'], 未:['巳','午','未'],
+};
+const SAMJAE_PHASE = ['들삼재', '눌삼재', '날삼재'];
+function isChung6(a, b) { return CHUNG6.some((c) => (c[0] === a && c[1] === b) || (c[1] === a && c[0] === b)); }
+
+// 특정 연도 세운(歲運) — 그 해 간지 + 일간 대비 십신·오행 + 태세충·삼재·연신살·용신부합
+function sewoonForYear(saju, year) {
+  const gz = Solar.fromYmd(year, 6, 1).getLunar().getYearInGanZhi(); // 6/1 = 입춘 이후, 그 해 간지
+  const gan = gz[0], zhi = gz[1];
+  const yearZhi = saju.pillars.year[1], dayZhi = saju.pillars.day[1];
+  const tri = SAMJAE_TRIPLE[yearZhi] || [];
+  const sjIdx = tri.indexOf(zhi);
+  const yong = saju.yongsin || [];
+  return {
+    year, ganzhi: gz, gan, zhi,
+    sipsin: sipsin(saju.dayGan, gan),
+    wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
+    chungIl: isChung6(zhi, dayZhi),      // 태세충 = 세운지가 일지(본인)를 충
+    chungYear: isChung6(zhi, yearZhi),   // 세운지가 연지를 충
+    ganHap: (GAN_HAP[saju.dayGan] && GAN_HAP[saju.dayGan][0] === gan) ? GAN_HAP[saju.dayGan][1] : null,
+    ganChung: GAN_CHUNG[saju.dayGan] === gan,
+    samjae: sjIdx >= 0 ? SAMJAE_PHASE[sjIdx] : null,
+    dohwaYear: DOHWA[yearZhi] === zhi || DOHWA[dayZhi] === zhi,
+    yeokmaYear: YEOKMA[yearZhi] === zhi || YEOKMA[dayZhi] === zhi,
+    hwagaeYear: HWAGAE[yearZhi] === zhi || HWAGAE[dayZhi] === zhi,
+    isYongsin: yong.includes(GAN_WX[gan]) || yong.includes(ZHI_WX[zhi]),
+  };
+}
+
+// 특정 날짜 일진(日辰) — 그날 간지 + 일간 대비 십신·오행 + 일지충/천간합
+function iljinForDate(saju, date) {
+  const l = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate()).getLunar();
+  const gz = l.getDayInGanZhi();
+  const gan = gz[0], zhi = gz[1], dayZhi = saju.pillars.day[1];
+  const yong = saju.yongsin || [];
+  return {
+    date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+    ganzhi: gz, gan, zhi,
+    sipsin: sipsin(saju.dayGan, gan),
+    zhiSipsin: sipsin(saju.dayGan, ZHI_HIDDEN[zhi]),
+    wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
+    chungIl: isChung6(zhi, dayZhi),
+    hapIl: (GAN_HAP[saju.dayGan] && GAN_HAP[saju.dayGan][0] === gan) ? GAN_HAP[saju.dayGan][1] : null,
+    dohwa: DOHWA[dayZhi] === zhi,
+    yeokma: YEOKMA[dayZhi] === zhi,
+    isYongsin: yong.includes(GAN_WX[gan]) || yong.includes(ZHI_WX[zhi]),
+  };
+}
+
+window.Saju = { computeSaju, sipsin, sewoonForYear, iljinForDate, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };

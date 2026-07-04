@@ -295,28 +295,46 @@ function renderNewyearForm() {
 function runNewyear() {
   const saju = getSaju(); if (!saju) return;
   const year = parseInt($('nyYear').value) || new Date().getFullYear();
-  let yGz = ''; try { yGz = Solar.fromYmd(year, 6, 1).getLunar().getYearInGanZhi(); } catch (e) {}
-  const ysip = yGz ? window.Saju.sipsin(saju.dayGan, yGz[0]) : '';
+  const sw = window.Saju.sewoonForYear(saju, year);
+  const yGz = sw.ganzhi, ysip = sw.sipsin;
   $('sajuResult').innerHTML = aiLoading(`${year} 신년운세 생성 중… (10~30초)`);
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: newyearPrompt2(saju, year, yGz, ysip) }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: newyearPrompt2(saju, year, sw) }) })
     .then((r) => r.json())
     .then((j) => renderNewyearResult(j.text || '', year, yGz, ysip))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
 }
-function newyearPrompt2(s, year, yGz, ysip) {
-  return `너는 20년 경력 자평명리 상담가이자 MZ 카피라이터다. ${year}년 신년운세를 아래 사주로 깊이 있게, 위트 있게 써라. 마크다운.
+function sewoonFlags(sw) {
+  const f = [];
+  if (sw.samjae) f.push(`삼재(${sw.samjae})`);
+  if (sw.chungIl) f.push('태세충 — 세운지가 일지(본인)를 충: 변동·이동·건강 주의');
+  if (sw.chungYear) f.push('세운지가 연지를 충: 집안·터전 변동');
+  if (sw.ganChung) f.push('세운천간이 일간을 충: 관재·구설·마찰');
+  if (sw.ganHap) f.push(`세운천간이 일간과 합(化${sw.ganHap}): 협력·인연·계약`);
+  if (sw.dohwaYear) f.push('도화년: 인기·이성·구설');
+  if (sw.yeokmaYear) f.push('역마년: 이동·이사·해외·변동');
+  if (sw.hwagaeYear) f.push('화개년: 학문·종교·예술·고독');
+  f.push(sw.isYongsin ? '세운 오행이 용신에 부합 — 순풍의 해' : '세운 오행이 용신과 달라 — 체감 저항 있을 수 있음');
+  return f.join(' / ');
+}
+function newyearPrompt2(s, year, sw) {
+  return `너는 20년 경력 자평명리 상담가이자 MZ 카피라이터다. ${year}년 신년운세(세운)를 아래 사주로 깊이 있게, 위트 있게 써라. 마크다운.
 반드시 **첫 줄**에 아래 형식으로 5개 점수(0~100 정수)만 출력하고 줄바꿈:
 SCORES 총운=?? 재물=?? 애정=?? 직업=?? 건강=??
-그 다음 섹션(각 2문단, 세운·대운 간지·십신 근거 인용):
+그 다음 섹션(각 2문단, 아래 [세운] 데이터의 간지·십신·삼재·충 근거 인용):
 ## ${year}년 한줄 요약
 ## 전체 흐름 (상반기 · 하반기)
 ## 💰 재물운
 ## ❤️ 애정·결혼운
-## 💼 직업·학업운
+## 💼 직업·일운
+## 📚 학업·시험운
 ## 🩺 건강운
-## ⚠️ 조심할 것 & 조언
+## 🧳 이동·이사운
+## 📅 월별 흐름 (1월부터 12월까지 각 월 한 줄 — 길흉 키워드 + 짧은 조언)
+## ⚠️ 올해 조심할 것 (삼재·태세충이 있으면 반드시 다루되 공포 조성 금지·대처법 중심, 없으면 '큰 액운 없는 해'로 안심)
+## 🍀 올해의 처방 & 응원 (용신 ${(s.yongsin || []).join('·') || '-'} 기운 보강 색·방위·습관 + 행운 색·숫자 + 응원 한마디)
 - 불행·질병·사망 단정 금지, '~할 수 있어요' 톤. 데이터에 없는 것 지어내지 말 것.
-[데이터] ${year} 세운 ${yGz}(${ysip}) / 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : '-'} / ${sajuLine(s)}`;
+[세운] ${year}년 ${sw.ganzhi}(천간 ${sw.gan}=${sw.sipsin}, 지지 ${sw.zhi}) · 오행 ${sw.wx.gan}/${sw.wx.zhi} · 특이사항: ${sewoonFlags(sw)}
+[사주] 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : '-'} / ${sajuLine(s)}`;
 }
 function renderNewyearResult(text, year, yGz, ysip) {
   const m = text.match(/SCORES[^\n]*/i);
@@ -722,17 +740,27 @@ function deepPrompt(s) {
 function sajuLine(s) {
   return `일간 ${s.dayGan}(${s.dayWx}) ${s.isStrong ? '신강' : '신약'} · ${s.tti}띠 · 오행 ${window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ')} · 용신 ${(s.yongsin || []).join('·') || '-'} · 팔자 ${s.pillars.year}/${s.pillars.month}/${s.pillars.day}${s.timeUnknown ? '' : '/' + s.pillars.time}`;
 }
+function iljinFlags(ij) {
+  const f = [];
+  if (ij.chungIl) f.push('오늘 일진 지지가 내 일지를 충 — 변동·이동·감정 기복');
+  if (ij.hapIl) f.push(`오늘 일진 천간이 내 일간과 합(化${ij.hapIl}) — 인연·협력·집중`);
+  if (ij.dohwa) f.push('도화 기운 — 매력·대인·구설');
+  if (ij.yeokma) f.push('역마 기운 — 이동·외출·변화');
+  f.push(ij.isYongsin ? '오늘 오행이 용신에 부합 — 컨디션 유리' : '오늘 오행이 용신과 달라 — 무리 금물');
+  return f.join(' / ');
+}
 function dailyPrompt(s) {
-  const t = new Date();
-  let gz = ''; try { gz = Solar.fromYmd(t.getFullYear(), t.getMonth() + 1, t.getDate()).getLunar().getDayInGanZhi(); } catch (e) {}
-  return `너는 사주명리 상담가다. 아래 사주와 오늘 일진을 엮어 "오늘의 운세"를 가볍고 친근하게 써라. 마크다운(## 제목, **굵게**). 단정·불행 단정 금지, '~하면 좋아요' 톤. 짧고 명료하게.
-## 오늘 한줄
+  const ij = window.Saju.iljinForDate(s, new Date());
+  return `너는 사주명리 상담가다. 아래 사주와 오늘 일진(日辰)을 엮어 "오늘의 운세"를 가볍고 친근하게 써라. 마크다운(## 제목, **굵게**). 단정·불행 단정 금지, '~하면 좋아요' 톤. 짧고 명료하게.
+## 오늘 한줄 (일진 ${ij.ganzhi} 기운을 캐릭터로 한마디)
 ## 총운
 ## 재물·일
 ## 애정·관계
 ## 건강·컨디션
+## ⚠️ 오늘 조심할 점 (일지충 등 있으면 짚고, 없으면 무난하다고)
 ## 오늘의 팁 (행운 색·시간·방향)
-[데이터] 오늘 ${t.getFullYear()}.${t.getMonth() + 1}.${t.getDate()} 일진 ${gz} / ${sajuLine(s)} / 올해세운 ${s.sewoon ? s.sewoon.ganzhi : ''} / 현재대운 ${s.daewoon ? s.daewoon.ganzhi : ''}`;
+[오늘 일진] ${ij.date} ${ij.ganzhi}(천간 ${ij.gan}=${ij.sipsin}, 지지 ${ij.zhi} 지장간십신 ${ij.zhiSipsin}) · 오행 ${ij.wx.gan}/${ij.wx.zhi} · 특이사항: ${iljinFlags(ij)}
+[사주] ${sajuLine(s)} / 올해세운 ${s.sewoon ? s.sewoon.ganzhi : ''} / 현재대운 ${s.daewoon ? s.daewoon.ganzhi : ''}`;
 }
 function newyearPrompt(s) {
   return `너는 사주명리 상담가다. 아래 사주와 올해 세운을 엮어 "올해의 운세"를 깊이 있게, 위트 있게 써라. 마크다운(## 제목). 불행 단정 금지.
