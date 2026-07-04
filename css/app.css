@@ -418,3 +418,31 @@ svg { display: block; }
 .saju-grid-big { row-gap: 9px; }
 .gauge-num { font-size: 44px; font-weight: 900; text-align: center; }
 .gauge-lbl { text-align: center; color: var(--ink-mid); margin-top: -4px; }
+
+/* ── 사신수 만화풍 아이콘 (홈 로고·히어로·방위 모티프) ── */
+.topbar .logo { display: flex; align-items: center; gap: 7px; }
+.logo-mark { height: 27px; width: 27px; object-fit: contain; object-position: top;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.sasin-hero { background: linear-gradient(135deg, #16203A, #0D1730); position: relative; }
+.sasin-hero .kicker { background: rgba(255,255,255,.14); color: #EAF1FF; }
+.sasin-hero h2 { color: #fff; }
+.sasin-hero p { color: #B9C6E0; }
+.hero-beast { height: 122px; width: auto; align-self: center;
+  margin: -16px -4px -16px 6px; filter: drop-shadow(0 5px 14px rgba(0,0,0,.5)); }
+.sasin-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 16px 6px; }
+.sasin-tile { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.09), transparent 70%),
+    linear-gradient(160deg, #172033, #0C1322); border: 1px solid #212c43; }
+.sasin-tile img { width: 86%; height: 86%; object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.55)); transition: transform .18s; }
+.sasin-tile:active img { transform: scale(1.06); }
+.sasin-tile .st-cap { position: absolute; inset: auto 0 0 0; padding: 6px 9px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  background: linear-gradient(transparent, rgba(6,10,18,.85)); color: #fff; }
+.st-cap b { font-size: 12.5px; font-weight: 800; }
+.st-cap span { font-size: 11px; color: #9DB0D0; }
+.s-cheongryong { box-shadow: inset 0 0 0 1px rgba(47,182,166,.4); }
+.s-jujak { box-shadow: inset 0 0 0 1px rgba(242,85,46,.4); }
+.s-baekho { box-shadow: inset 0 0 0 1px rgba(220,230,236,.32); }
+.s-hyeonmu { box-shadow: inset 0 0 0 1px rgba(92,139,214,.4); }

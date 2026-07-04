@@ -64,11 +64,13 @@ function renderHome() {
   }).join('');
   $('view-home').innerHTML = `
     <div class="report-tabs"><div class="rtab on">운세보고서</div><div class="rtab">인맥보고서</div><div class="rtab">행운보고서</div></div>
-    <div class="hero">
+    <div class="hero sasin-hero">
       <div class="txt"><span class="kicker">오늘의 사주</span><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
-      <div class="art">🔮</div>
+      <img class="hero-beast" src="img/sasin/cheongryong.png" alt="청룡" />
     </div>
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
+    <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
+    <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
     <div class="icon-grid">${grid}</div>
     <div class="section" style="padding-bottom:20px">
