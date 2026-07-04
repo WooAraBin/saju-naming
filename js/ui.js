@@ -66,11 +66,11 @@ function renderHome() {
     <div class="report-tabs"><div class="rtab on">운세보고서</div><div class="rtab">인맥보고서</div><div class="rtab">행운보고서</div></div>
     <div class="hero sasin-hero">
       <div class="txt"><span class="kicker">오늘의 사주</span><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
-      <img class="hero-beast" src="img/sasin/cheongryong.png" alt="청룡" />
+      <img class="hero-beast" src="img/sasin/cheongryong.png?v=3" alt="청룡" />
     </div>
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
-    <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
+    <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png?v=3" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
     <div class="ohaeng-band" onclick="openOhaeng()">
       <div class="ob-txt"><b>오행 (五行) 그래프</b><span>내 오행이 얼마나 찼는지 오각형으로 · 저장·비교</span>
         ${ohElemRow(38)}</div>
@@ -503,9 +503,9 @@ const OH_COLORS = { 목: '#2E9E5B', 화: '#E8443A', 토: '#D6A43C', 금: '#8A94A
 const OH_PALETTE = ['#7C6BE7', '#E8557A', '#2E9E5B', '#E8843A', '#3E7BE0', '#8A5AD6', '#12B5A6', '#D4472F'];
 const OH_FILE = { 목: 'mok', 화: 'hwa', 토: 'to', 금: 'geum', 수: 'su' };
 const OH_IMG = {};
-OH_ORDER.forEach((o) => { const im = new Image(); im.src = `img/sasin/elem/${OH_FILE[o]}.png`; im.onload = () => { Object.values(_ohCharts).forEach((c) => { try { c && c.draw(); } catch (e) {} }); }; OH_IMG[o] = im; });
+OH_ORDER.forEach((o) => { const im = new Image(); im.src = `img/sasin/elem/${OH_FILE[o]}.png?v=3`; im.onload = () => { Object.values(_ohCharts).forEach((c) => { try { c && c.draw(); } catch (e) {} }); }; OH_IMG[o] = im; });
 function ohElemRow(size) {
-  return `<div class="oh-elem-row">${OH_ORDER.map((o) => `<img src="img/sasin/elem/${OH_FILE[o]}.png" alt="${OH_HANJA[o]}" style="height:${size}px" />`).join('')}</div>`;
+  return `<div class="oh-elem-row">${OH_ORDER.map((o) => `<img src="img/sasin/elem/${OH_FILE[o]}.png?v=3" alt="${OH_HANJA[o]}" style="height:${size}px" />`).join('')}</div>`;
 }
 const _ohCharts = {};
 let _ohLast = null;
