@@ -71,6 +71,10 @@ function renderHome() {
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
     <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
+    <div class="ohaeng-band">
+      <img src="img/sasin/ohaeng.png" alt="오행" />
+      <div class="ob-txt"><b>오행 (五行)</b><span>목·화·토·금·수 — 사주를 이루는 다섯 기운</span></div>
+    </div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
     <div class="icon-grid">${grid}</div>
     <div class="section" style="padding-bottom:20px">
