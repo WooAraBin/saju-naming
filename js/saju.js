@@ -449,4 +449,21 @@ function movingGuide(saju, year) {
   return { year, yearZhi: yz, goodDirs, netGood, conflict, badDirs, sonNo };
 }
 
-window.Saju = { computeSaju, sipsin, sewoonForYear, iljinForDate, compatibility, movingGuide, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };
+/* =========================================================================
+ * 오행 수치화 — 원국 오행 분포를 0~100 지수로 (레이더용)
+ * ========================================================================= */
+// 각 오행: 원국 개수(count) + 월령 가중 반영 강도 지수(idx 0~100)
+function ohaengScores(saju) {
+  const monthWx = ZHI_WX[saju.pillars.month[1]]; // 월지 오행 = 월령
+  const out = {};
+  WX_KO.forEach((o) => {
+    const c = saju.count[o] || 0;
+    // 개수 1당 22점(5개=110→상한100), 월령이면 +14 보너스
+    let idx = c * 22 + (o === monthWx ? 14 : 0);
+    idx = Math.max(0, Math.min(100, Math.round(idx)));
+    out[o] = { count: c, idx };
+  });
+  return out;
+}
+
+window.Saju = { computeSaju, sipsin, sewoonForYear, iljinForDate, compatibility, movingGuide, ohaengScores, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };

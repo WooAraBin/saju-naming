@@ -71,9 +71,10 @@ function renderHome() {
     <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
     <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
-    <div class="ohaeng-band">
+    <div class="ohaeng-band" onclick="openOhaeng()">
       <img src="img/sasin/ohaeng.png" alt="오행" />
-      <div class="ob-txt"><b>오행 (五行)</b><span>목·화·토·금·수 — 사주를 이루는 다섯 기운</span></div>
+      <div class="ob-txt"><b>오행 (五行) 그래프</b><span>내 오행이 얼마나 찼는지 오각형으로 · 저장·비교</span></div>
+      <div class="ob-go">›</div>
     </div>
     <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
     <div class="icon-grid">${grid}</div>
@@ -484,6 +485,95 @@ function renderMovingResult(text, g) {
     ${g.conflict.length ? `<div class="muted" style="margin-top:10px;font-size:12px">※ ${g.conflict.join('·')}은 용신 방위지만 올해 흉살과 겹쳐 주의하세요.</div>` : ''}</div>`;
   const daycard = `<div class="card"><div class="mv-lbl">📅 손 없는 날 (가까운 순)</div><div class="son-list">${days}</div></div>`;
   $('sajuResult').innerHTML = header + daycard + `<div class="card md">${mdLite(text)}</div>`;
+}
+
+// ── 오행 수치화 레이더 + Supabase 저장/비교 ──
+const SB_URL = 'https://eepbqgcguyyikpsovsta.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcGJxZ2NndXl5aWtwc292c3RhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTgzMTgsImV4cCI6MjA5Nzc5NDMxOH0.WRkjrf942X8HvEWwvuPooJ1T_NwwVuXPv4ZRkSNdOgo';
+let _sb = null;
+function sb() { if (_sb) return _sb; if (!window.supabase) return null; _sb = window.supabase.createClient(SB_URL, SB_KEY); return _sb; }
+function clientId() {
+  let id = localStorage.getItem('saju_client_id');
+  if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2); localStorage.setItem('saju_client_id', id); }
+  return id;
+}
+const OH_ORDER = ['목', '화', '토', '금', '수'];
+const OH_HANJA = { 목: '木', 화: '火', 토: '土', 금: '金', 수: '水' };
+const OH_COLORS = { 목: '#2E9E5B', 화: '#E8443A', 토: '#D6A43C', 금: '#8A94A6', 수: '#3E7BE0' };
+const OH_PALETTE = ['#7C6BE7', '#E8557A', '#2E9E5B', '#E8843A', '#3E7BE0', '#8A5AD6', '#12B5A6', '#D4472F'];
+const _ohCharts = {};
+let _ohLast = null;
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; }
+
+function openOhaeng() { renderOhaengForm(); }
+function renderOhaengForm() {
+  $('view-reading').innerHTML = detailHead('오행 그래프') +
+    `<div class="card" style="text-align:center;padding:14px 14px 12px"><img src="img/sasin/ohaeng.png" alt="오행" style="height:88px" /><div class="muted" style="font-size:12.5px;margin-top:4px">목·화·토·금·수 — 내 사주 오행이 얼마나 찼는지 오각형으로 봅니다</div></div>` +
+    birthFields(false) +
+    `<label class="field-label" style="margin-top:12px">이름/별명 <span class="muted" style="font-weight:400">(저장·비교용)</span><input id="ohName" class="input" placeholder="예: 나, 김도근" /></label>
+     <button class="btn" style="margin-top:14px" onclick="runOhaeng()">오행 그래프 보기</button></div>
+     <div id="sajuResult"></div>
+     <div class="section" style="padding:10px 16px 6px"><div class="section-head"><div><div class="sec-kicker">이 기기에 저장된 사람들</div><h3>오행 비교</h3></div><span class="more" onclick="renderOhaengList()">새로고침</span></div></div>
+     <div id="ohList"></div>`;
+  showView('reading');
+  renderOhaengList();
+}
+function runOhaeng() {
+  const saju = getSaju(); if (!saju) return;
+  const scores = window.Saju.ohaengScores(saju);
+  const name = ($('ohName') && $('ohName').value.trim()) || '나';
+  _ohLast = { name, birth: window._birthInput ? window._birthInput.bd : '', scores };
+  $('sajuResult').innerHTML =
+    `<div class="card"><div style="max-width:340px;margin:0 auto"><canvas id="ohRadar" width="340" height="300"></canvas></div>
+      <div class="oh-nums">${OH_ORDER.map((o) => `<div class="oh-num" style="--c:${OH_COLORS[o]}"><span class="ohh">${OH_HANJA[o]}</span><b>${scores[o].idx}</b><em>${scores[o].count}개</em></div>`).join('')}</div></div>
+     <div class="card" style="padding:12px"><button class="btn" onclick="saveOhaeng()">＋ 이 사람 저장하기</button></div>`;
+  drawOhRadar('ohRadar', [{ name, scores, color: '#7C6BE7' }]);
+}
+// 오방색 한자 뱃지를 꼭짓점에 그리는 플러그인 + 레이더 생성
+function drawOhRadar(id, people) {
+  const datasets = people.map((p) => ({ label: p.name, data: OH_ORDER.map((o) => p.scores[o].idx),
+    fill: true, backgroundColor: hexA(p.color, people.length > 1 ? 0.10 : 0.16),
+    borderColor: p.color, pointBackgroundColor: p.color, borderWidth: 2, pointRadius: 2 }));
+  const badge = { id: 'ohBadge', afterDraw(chart) {
+    const s = chart.scales.r; if (!s) return; const ctx = chart.ctx;
+    OH_ORDER.forEach((o, i) => {
+      const ang = (i * 2 * Math.PI / 5) - Math.PI / 2, r = s.drawingArea + 17;
+      const x = s.xCenter + r * Math.cos(ang), y = s.yCenter + r * Math.sin(ang);
+      ctx.save(); ctx.beginPath(); ctx.arc(x, y, 13, 0, 7); ctx.fillStyle = OH_COLORS[o]; ctx.fill();
+      ctx.fillStyle = (o === '금') ? '#2A2E38' : '#fff'; ctx.font = 'bold 15px Georgia, serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(OH_HANJA[o], x, y + 1); ctx.restore();
+    });
+  } };
+  if (_ohCharts[id]) _ohCharts[id].destroy();
+  _ohCharts[id] = new Chart($(id), { type: 'radar', data: { labels: OH_ORDER, datasets },
+    options: { layout: { padding: 22 }, scales: { r: { min: 0, max: 100,
+      ticks: { stepSize: 20, display: false }, pointLabels: { display: false },
+      grid: { color: '#E5E7EE' }, angleLines: { color: '#E5E7EE' } } },
+      plugins: { legend: { display: people.length > 1, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
+    plugins: [badge] });
+}
+async function saveOhaeng() {
+  if (!_ohLast) return;
+  const c = sb(); if (!c) { alert('저장 모듈을 불러오지 못했어요.'); return; }
+  const { error } = await c.from('ohaeng_profiles').insert({ client_id: clientId(), name: _ohLast.name, birth: _ohLast.birth, scores: _ohLast.scores });
+  if (error) { alert('저장 실패: ' + error.message + '\n(Supabase에 ohaeng_profiles 테이블이 필요합니다)'); return; }
+  alert(`'${_ohLast.name}' 저장됐어요`); renderOhaengList();
+}
+async function renderOhaengList() {
+  const box = $('ohList'); if (!box) return;
+  const c = sb(); if (!c) { box.innerHTML = ''; return; }
+  const { data, error } = await c.from('ohaeng_profiles').select('*').eq('client_id', clientId()).order('created_at', { ascending: false }).limit(24);
+  if (error) { box.innerHTML = `<div class="card muted" style="font-size:12px;text-align:center">저장 목록을 불러오지 못했어요 (테이블 준비 전).</div>`; return; }
+  if (!data || !data.length) { box.innerHTML = `<div class="card muted" style="font-size:12.5px;text-align:center;padding:22px">아직 저장된 사람이 없어요.<br/>오행을 보고 ‘저장’을 눌러보세요.</div>`; return; }
+  box.innerHTML = `<div class="card"><div class="mv-lbl">저장된 ${data.length}명 겹쳐보기</div>
+      <div style="max-width:340px;margin:0 auto"><canvas id="ohAll" width="340" height="300"></canvas></div>
+      <div class="oh-names">${data.map((d, i) => `<span class="oh-name-chip" style="--c:${OH_PALETTE[i % OH_PALETTE.length]}">${d.name}<button class="oh-del" onclick="delOhaeng('${d.id}')">×</button></span>`).join('')}</div></div>`;
+  drawOhRadar('ohAll', data.map((d, i) => ({ name: d.name, scores: d.scores, color: OH_PALETTE[i % OH_PALETTE.length] })));
+}
+async function delOhaeng(id) {
+  const c = sb(); if (!c) return;
+  await c.from('ohaeng_profiles').delete().eq('id', id).eq('client_id', clientId());
+  renderOhaengList();
 }
 
 // ── 이름점수 (기존 naming.js 로직 이식) ──

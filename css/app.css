@@ -471,3 +471,21 @@ svg { display: block; }
 .ohaeng-band .ob-txt { display: flex; flex-direction: column; gap: 3px; }
 .ohaeng-band .ob-txt b { color: #fff; font-size: 15px; font-weight: 800; }
 .ohaeng-band .ob-txt span { color: #A9B8D4; font-size: 12px; }
+
+/* ── 오행 수치화 레이더 ── */
+.ohaeng-band { cursor: pointer; }
+.ohaeng-band .ob-txt { flex: 1; }
+.ohaeng-band .ob-go { color: #6B7A99; font-size: 24px; font-weight: 400; padding-right: 4px; }
+.oh-nums { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 10px; }
+.oh-num { display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 8px 2px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line-2);
+  border-top: 3px solid var(--c); }
+.oh-num .ohh { font-family: Georgia, serif; font-weight: 700; font-size: 15px; color: var(--c); }
+.oh-num b { font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.oh-num em { font-style: normal; font-size: 10.5px; color: var(--ink-soft); }
+.oh-names { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 10px; }
+.oh-name-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700;
+  color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-2);
+  border-left: 4px solid var(--c); border-radius: 8px; padding: 4px 6px 4px 9px; }
+.oh-del { border: none; background: none; color: var(--ink-faint); font-size: 15px; cursor: pointer; line-height: 1; padding: 0 2px; }
+.oh-del:hover { color: var(--red); }
