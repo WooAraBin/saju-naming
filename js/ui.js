@@ -90,6 +90,8 @@ const CHILD_SET = new Set(['child', 'teen']);
 function openFeature(id) {
   const f = featById(id);
   if (id === 'newyear') return renderNewyearForm(f);
+  if (id === 'couple') return renderCoupleForm(f);
+  if (id === 'moving') return renderMovingForm(f);
   if (BIRTH_BTN[id]) return renderBirthForm(id, f);
   if (id === 'face') return renderFaceForm(f);
   if (id === 'dream') return renderDreamForm(f);
@@ -352,6 +354,132 @@ function renderNewyearResult(text, year, yGz, ysip) {
     if (nyChart) nyChart.destroy();
     nyChart = new Chart($('nyRadar'), { type: 'radar', data: { labels, datasets: [{ data, fill: true, backgroundColor: 'rgba(124,107,231,.16)', borderColor: '#7C6BE7', pointBackgroundColor: '#7C6BE7' }] }, options: { scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }, plugins: { legend: { display: false } } } });
   }
+}
+
+// ── 부부 궁합 ──
+let cpChart = null;
+function coupleFields(sfx, label, def, gender) {
+  return `<div class="card" style="margin-bottom:12px">
+    <div style="font-weight:800;font-size:14px;color:var(--ink);margin-bottom:10px">${label}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <label class="field-label">생년월일<input id="cBirth${sfx}" type="date" value="${def}" class="input" /></label>
+      <label class="field-label">출생 시각<input id="cTime${sfx}" type="time" value="12:00" class="input" /></label>
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" id="cUnk${sfx}" /> 시간 모름</label>
+      <label>성별 <select id="cGender${sfx}"><option value="M"${gender === 'M' ? ' selected' : ''}>남</option><option value="F"${gender === 'F' ? ' selected' : ''}>여</option></select></label>
+      <label>달력 <select id="cCal${sfx}"><option value="solar">양력</option><option value="lunar">음력</option></select></label>
+    </div></div>`;
+}
+function renderCoupleForm() {
+  $('view-reading').innerHTML = detailHead('부부 궁합') +
+    coupleFields('A', '나 (본인)', '1990-01-01', 'M') +
+    coupleFields('B', '상대', '1992-01-01', 'F') +
+    `<button class="btn" onclick="runCouple()">궁합 보기</button><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function getCoupleSaju(sfx) {
+  const bd = $('cBirth' + sfx).value, tm = $('cTime' + sfx).value || '12:00';
+  if (!bd) return null;
+  const [y, mo, d] = bd.split('-').map(Number), [h, mi] = tm.split(':').map(Number);
+  return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi,
+    gender: $('cGender' + sfx).value, timeUnknown: $('cUnk' + sfx).checked, isLunar: $('cCal' + sfx).value === 'lunar' });
+}
+function runCouple() {
+  const A = getCoupleSaju('A'), B = getCoupleSaju('B');
+  if (!A || !B) { alert('두 사람의 생년월일을 모두 입력하세요'); return; }
+  const c = window.Saju.compatibility(A, B);
+  $('sajuResult').innerHTML = aiLoading('궁합 분석 중… (10~30초)');
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: couplePrompt(A, B, c) }) })
+    .then((r) => r.json())
+    .then((j) => renderCoupleResult(j.text || '', c))
+    .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
+}
+function couplePrompt(A, B, c) {
+  const rel = (r) => r.t + (r.wx ? `(化${r.wx})` : '');
+  const bo = c.aHelpsB && c.bHelpsA ? '서로의 부족한 기운을 채워줌(쌍방)' : c.aHelpsB ? '내가 상대의 부족 기운을 채워줌' : c.bHelpsA ? '상대가 나의 부족 기운을 채워줌' : '오행 보완은 약함';
+  return `너는 20년 경력 자평명리 궁합(宮合) 상담가이자 MZ 카피라이터다. 아래 두 사람의 궁합을 정확한 명리 위에 위트 있게, 현실 조언까지 마크다운으로 써라.
+[규칙]
+1. 첫 줄부터 두 사람을 캐릭터로 의인화한 한 줄 비유로 시작.
+2. 아래 ## 섹션(각 2문단, 아래 [궁합 데이터]의 간지·십신·합충·원진 근거 인용):
+   ## 한 줄 궁합
+   ## 성격 케미 (일간 ${c.gA}×${c.gB}, 십신)
+   ## 애정·부부궁 (일지 ${rel(c.iljiRel)} 해석 — 잠자리·정서 포함하되 노골 금지)
+   ## 현실 궁합 (오행 보완·생활 밸런스)
+   ## 삐걱대는 지점 (충·원진·겁재 있으면 솔직히 + 극복법)
+   ## 롱런 팁 & 응원
+3. 불행·이혼 단정 금지, '~한 편이에요/~하면 좋아요' 톤. 데이터에 없는 것 지어내지 말 것. 점수는 이미 화면에 있으니 반복 금지.
+[궁합 데이터]
+나: 일간 ${c.gA}(${c.wxA}) ${c.ttiA}띠 / 상대: 일간 ${c.gB}(${c.wxB}) ${c.ttiB}띠
+천간(일간) 관계: ${c.ganRel}${c.ganHap ? `(化${c.ganHap})` : ''}
+일지(부부궁) 관계: ${rel(c.iljiRel)} · 띠(연지) 관계: ${rel(c.ttiRel)}
+십신: 상대는 나에게 ${c.sipAtoB || '-'}, 나는 상대에게 ${c.sipBtoA || '-'}
+오행 보완: ${bo}
+종합 점수(참고): ${c.total}점`;
+}
+function renderCoupleResult(text, c) {
+  const heart = c.total >= 80 ? '💞' : c.total >= 60 ? '💗' : c.total >= 45 ? '💛' : '🩹';
+  const header = `<div class="card" style="background:linear-gradient(135deg,#FFE9EE,#FFF0E6);text-align:center">
+    <div style="font-size:13px;color:var(--ink-mid)">${heart} 궁합 지수</div>
+    <div style="font-size:44px;font-weight:900;color:#E8557A">${c.total}<span style="font-size:16px;color:var(--ink-soft)">점</span></div>
+    <div class="muted" style="font-size:12.5px">일간 ${c.gA}×${c.gB} · ${c.ttiA}띠×${c.ttiB}띠 · 부부궁 ${c.iljiRel.t}</div></div>`;
+  const radar = `<div class="card"><div style="max-width:300px;margin:0 auto"><canvas id="cpRadar" height="260"></canvas></div></div>`;
+  $('sajuResult').innerHTML = header + radar + `<div class="card md">${mdLite(text)}</div>`;
+  const labels = Object.keys(c.axes), data = labels.map((k) => c.axes[k]);
+  if (cpChart) cpChart.destroy();
+  cpChart = new Chart($('cpRadar'), { type: 'radar', data: { labels, datasets: [{ data, fill: true,
+    backgroundColor: 'rgba(232,85,122,.16)', borderColor: '#E8557A', pointBackgroundColor: '#E8557A' }] },
+    options: { scales: { r: { min: 0, max: 100, ticks: { stepSize: 20 } } }, plugins: { legend: { display: false } } } });
+}
+
+// ── 이사 택일 ──
+function renderMovingForm() {
+  const y = new Date().getFullYear();
+  const years = [y, y + 1].map((yy) => `<option value="${yy}">${yy}년</option>`).join('');
+  $('view-reading').innerHTML = detailHead('이사 택일') + birthFields(false) +
+    `<label style="font-size:13px;font-weight:700;color:var(--ink-2);display:block;margin-top:12px">이사할 해
+      <select id="mvYear" style="margin-top:6px;padding:11px;border:1px solid var(--line);border-radius:10px;width:130px;font-size:15px">${years}</select></label>
+     <button class="btn" style="margin-top:16px" onclick="runMoving()">이사 길방·길일 보기</button></div><div id="sajuResult"></div>`;
+  showView('reading');
+}
+function runMoving() {
+  const saju = getSaju(); if (!saju) return;
+  const year = parseInt($('mvYear').value) || new Date().getFullYear();
+  const g = window.Saju.movingGuide(saju, year);
+  $('sajuResult').innerHTML = aiLoading('이사 길방·길일 분석 중… (10~30초)');
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: movingPrompt(saju, g) }) })
+    .then((r) => r.json())
+    .then((j) => renderMovingResult(j.text || '', g))
+    .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
+}
+function movingPrompt(s, g) {
+  const good = g.netGood.length ? g.netGood.join('·') : '뚜렷한 길방은 약함(중앙·안정 위주)';
+  const conf = g.conflict.length ? ` (단 ${g.conflict.join('·')}은 용신 방위지만 올해 흉살과 겹쳐 주의)` : '';
+  const bad = g.badDirs.map((b) => b.name + ' ' + b.reason).join(', ');
+  const days = g.sonNo.slice(0, 6).map((d) => `${d.solar}(${d.wd})`).join(', ');
+  return `너는 자평명리 이사 택일 상담가다. 아래 데이터로 ${g.year}년 이사 조언을 마크다운으로 써라. 공포·미신 조장 금지, 근거와 실용 위주 '~하면 좋아요' 톤.
+## ${g.year}년 이사, 한 줄 요약
+## 좋은 방향 (용신 ${(s.yongsin || []).join('·') || '-'} 기준으로 왜 좋은지)
+## 피할 방향 (삼살방·대장군방이 뭔지 쉽게 + 꼭 그쪽이면 대처)
+## 이사하기 좋은 날 (아래 손 없는 날 중 추천 + 준비 팁)
+## 마무리 조언
+[데이터]
+본인: 일간 ${s.dayGan}(${s.dayWx}) ${s.tti}띠 · 용신 ${(s.yongsin || []).join('·') || '-'}
+${g.year}년(세지 ${g.yearZhi}) 좋은 방향: ${good}${conf}
+피할 방향: ${bad}
+손 없는 날(가까운 순): ${days}`;
+}
+function renderMovingResult(text, g) {
+  const chip = (t, cls, sub) => `<span class="dir-chip ${cls}">${t}${sub ? ` <em>${sub}</em>` : ''}</span>`;
+  const goodChips = (g.netGood.length ? g.netGood : ['중앙·안정']).map((d) => chip(d, 'good')).join('');
+  const badChips = g.badDirs.map((b) => chip(b.name, 'bad', b.reason)).join('');
+  const days = g.sonNo.map((d) => `<div class="son-day"><b>${d.solar}</b><span>${d.wd}요일 · ${d.lunar}</span></div>`).join('');
+  const header = `<div class="card"><div class="mv-grid">
+    <div><div class="mv-lbl">🧭 좋은 방향</div><div class="dir-wrap">${goodChips}</div></div>
+    <div><div class="mv-lbl">⚠️ 피할 방향</div><div class="dir-wrap">${badChips}</div></div></div>
+    ${g.conflict.length ? `<div class="muted" style="margin-top:10px;font-size:12px">※ ${g.conflict.join('·')}은 용신 방위지만 올해 흉살과 겹쳐 주의하세요.</div>` : ''}</div>`;
+  const daycard = `<div class="card"><div class="mv-lbl">📅 손 없는 날 (가까운 순)</div><div class="son-list">${days}</div></div>`;
+  $('sajuResult').innerHTML = header + daycard + `<div class="card md">${mdLite(text)}</div>`;
 }
 
 // ── 이름점수 (기존 naming.js 로직 이식) ──

@@ -446,3 +446,18 @@ svg { display: block; }
 .s-jujak { box-shadow: inset 0 0 0 1px rgba(242,85,46,.4); }
 .s-baekho { box-shadow: inset 0 0 0 1px rgba(220,230,236,.32); }
 .s-hyeonmu { box-shadow: inset 0 0 0 1px rgba(92,139,214,.4); }
+
+/* ── 이사 택일 ── */
+.mv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mv-lbl { font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 8px; }
+.dir-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.dir-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 11px; border-radius: 20px;
+  font-size: 13px; font-weight: 800; }
+.dir-chip.good { background: #E7F7EE; color: #1E9E5A; border: 1px solid #B6E6C9; }
+.dir-chip.bad { background: #FCEBEA; color: #D4472F; border: 1px solid #F3C7C0; }
+.dir-chip em { font-style: normal; font-weight: 600; font-size: 11px; opacity: .8; }
+.son-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 4px; }
+.son-day { background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 10px;
+  padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
+.son-day b { font-size: 14px; font-weight: 800; }
+.son-day span { font-size: 11.5px; color: var(--ink-soft); }
