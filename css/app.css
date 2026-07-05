@@ -519,16 +519,14 @@ svg { display: block; }
 @media (prefers-reduced-motion: reduce) { #welcome { animation: none; } }
 
 /* ── 홈: 보라 별밤 테마 + 카드 그리드 ── */
-#view-home { display: flex; flex-direction: column;
-  background:
-    radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
+#view-home {
+  background: radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
   min-height: calc(100vh - 56px); padding-bottom: 10px; }
-/* 나무 히어로 (가로 풀폭) */
-.tree-hero { flex: 0 0 auto; height: 260px; margin: 0;
-  background: url('../img/home_tree.jpg') no-repeat center 18%; background-size: 100% auto;
-  -webkit-mask-image: linear-gradient(#000 80%, transparent 100%);
-  mask-image: linear-gradient(#000 80%, transparent 100%); }
-.card-grid, #view-home .empty-tab { margin-top: auto; }
+/* 나무 히어로 (가로 풀폭, 카드 바로 위) */
+.tree-hero { height: 210px; margin: 4px 0 6px;
+  background: url('../img/home_tree.jpg') no-repeat center 22%; background-size: 100% auto;
+  -webkit-mask-image: linear-gradient(#000 82%, transparent 100%);
+  mask-image: linear-gradient(#000 82%, transparent 100%); }
 
 /* ── 상세 헤더 배너 (사주 등) ── */
 .detail-banner { width: calc(100% - 32px); margin: 2px 16px 14px; border-radius: 16px;
