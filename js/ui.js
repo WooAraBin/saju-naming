@@ -127,10 +127,24 @@ const ICONS = {
   share: _svg('<circle cx="6.5" cy="12" r="2.2"/><circle cx="17" cy="6" r="2.2"/><circle cx="17" cy="18" r="2.2"/><path d="M8.5 11L15 7M8.5 13.2L15 17"/>'),
 };
 function renderNav() {
-  const items = [['home', 'home', t('nav_home')], ['archive', 'archive', t('nav_archive')], ['me', 'me', t('nav_me')]];
-  $('bottomNav').innerHTML = items.map(([v, ic, l]) =>
-    `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${ICONS[ic]}</div>${l}</div>`).join('');
+  const items = [
+    ['home', 'home', t('nav_home'), "showView('home')"],
+    ['daily', 'daily', LANG === 'en' ? 'Daily' : '오늘의 운세', "openFeature('daily')"],
+    ['extra', 'archive', LANG === 'en' ? 'More' : '추가 기능', 'renderExtra()'],
+    ['me', 'me', t('nav_me'), "showView('me')"],
+  ];
+  $('bottomNav').innerHTML = items.map(([v, ic, l, act]) =>
+    `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="${act}"><div class="ico">${ICONS[ic] || ICONS.home}</div>${l}</div>`).join('');
   syncStaticViews();
+}
+// 추가 기능 뷰: 이사택일·꿈해몽·관상·이름점수
+function renderExtra() {
+  const tiles = ['moving', 'dream', 'face', 'name'].map((id) => {
+    const f = featById(id);
+    return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div></div>`;
+  }).join('');
+  $('view-extra').innerHTML = `<div class="section" style="padding:18px 16px 10px"><div class="section-head"><h3>${LANG === 'en' ? 'More' : '추가 기능'}</h3></div></div><div class="card-grid" style="padding-top:0">${tiles}</div>`;
+  showView('extra');
 }
 // 정적 뷰(보관함·내정보) 텍스트도 언어 반영
 function syncStaticViews() {
@@ -146,25 +160,21 @@ let homeTab = 0;
 const TAB_GROUPS = [['saju', 'couple', 'child', 'teen', 'daily', 'newyear'], [], ['moving', 'dream', 'face', 'name']];
 const CARD_IDS = new Set(['saju', 'couple', 'child', 'teen', 'daily', 'newyear']);
 function setHomeTab(i) { homeTab = i; renderHome(); }
+const HOME_CARDS = ['saju', 'couple', 'child', 'teen', 'daily', 'newyear'];
 function renderHome() {
-  const tiles = TAB_GROUPS[homeTab].map((id) => {
+  const tiles = HOME_CARDS.map((id) => {
     const f = featById(id), done = DONE.has(id);
     const badge = LANG === 'en' ? (done ? 'Live' : 'Soon') : (done ? '구현' : '준비');
-    const badgeEl = `<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'} card-badge">${badge}</span>`;
-    if (CARD_IDS.has(id) && LANG !== 'en') {
-      return `<div class="card-tile" onclick="openFeature('${id}')"><img src="img/cards/${id}.png?v=1" alt="${featTitle(f)}" />${badgeEl}</div>`;
-    }
-    return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div>${badgeEl}</div>`;
+    return `<div class="card-tile" onclick="openFeature('${id}')"><img src="img/cards/${id}.png?v=1" alt="${featTitle(f)}" /><span class="mini-badge ${done ? 'mb-done' : 'mb-todo'} card-badge">${badge}</span></div>`;
   }).join('');
-  const tabs = [t('tab1'), t('tab2'), t('tab3')].map((nm, i) => `<div class="rtab ${i === homeTab ? 'on' : ''}" onclick="setHomeTab(${i})">${nm}</div>`).join('');
-  const body = TAB_GROUPS[homeTab].length
-    ? `<div class="card-grid">${tiles}</div>`
-    : `<div class="empty-tab">${LANG === 'en' ? 'Coming soon' : '준비 중이에요'}</div>`;
   $('view-home').innerHTML = `
-    <div class="home-hd"><div class="home-title">${t('appName')} <span class="hcompass">✦</span></div></div>
-    <div class="report-tabs">${tabs}</div>
     <img class="tree-hero" src="img/home_tree.jpg?v=2" alt="운명 리더기" />
-    ${body}`;
+    <div class="event-box" onclick="openFeature('daily')">
+      <div class="ev-emoji">🎉</div>
+      <div class="ev-txt"><b>${LANG === 'en' ? 'Daily Fortune Event!' : '오늘의 운세 이벤트!'}</b><span>${LANG === 'en' ? 'Check in daily for your fortune' : '매일 접속하고 오늘의 운세 확인해요'}</span></div>
+      <div class="ev-go">›</div>
+    </div>
+    <div class="card-grid">${tiles}</div>`;
 }
 function detailHead(title) {
   return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div><div class="share">${ICONS.share}</div></div>`;
@@ -201,7 +211,8 @@ function birthFields(child) {
     </div>`;
 }
 function renderBirthForm(id, f) {
-  const banner = (id === 'saju') ? `<img class="detail-banner" src="img/head_saju.jpg?v=1" alt="사주팔자" />` : '';
+  const banner = (id === 'saju') ? `<img class="detail-banner" src="img/head_saju.jpg?v=1" alt="사주팔자" />`
+    : (id === 'daily') ? `<img class="detail-banner" src="img/head_daily.jpg?v=1" alt="오늘의 운세" />` : '';
   $('view-reading').innerHTML = detailHead(f.title) + banner + `<div id="profileMini"></div>` + birthFields(CHILD_SET.has(id)) +
     `<button class="btn" style="margin-top:16px" onclick="runReading('${id}')">${BIRTH_BTN[id]}</button></div><div id="sajuResult"></div>`;
   showView('reading');
