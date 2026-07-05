@@ -421,8 +421,8 @@ svg { display: block; }
 
 /* ── 사신수 만화풍 아이콘 (홈 로고·히어로·방위 모티프) ── */
 .topbar .logo { display: flex; align-items: center; gap: 7px; }
-.logo-mark { height: 30px; width: 30px; object-fit: cover; object-position: center; border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.logo-mark { display: inline-flex; align-items: center; }
+.logo-mark svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.15)); }
 .sasin-hero { background: linear-gradient(135deg, #16203A, #0D1730); position: relative; }
 .sasin-hero .kicker { background: rgba(255,255,255,.14); color: #EAF1FF; }
 .sasin-hero h2 { color: #fff; }
