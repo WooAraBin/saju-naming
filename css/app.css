@@ -520,8 +520,16 @@ svg { display: block; }
 
 /* ── 홈: 보라 별밤 테마 + 카드 그리드 ── */
 #view-home { background:
+    linear-gradient(180deg, rgba(20,16,46,.58), rgba(20,16,46,.82) 55%, #14102e 92%),
+    url('../img/home_tree.jpg') no-repeat center 70px,
     radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
+  background-size: auto, 92% auto, auto;
   min-height: calc(100vh - 56px); padding-bottom: 10px; }
+
+/* ── 상세 헤더 배너 (사주 등) ── */
+.detail-banner { width: calc(100% - 32px); margin: 2px 16px 14px; border-radius: 16px;
+  aspect-ratio: 16 / 10; object-fit: cover; object-position: center 42%;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25); }
 .home-hd { text-align: center; padding: 18px 16px 8px; }
 .home-title { color: #F3EBD0; font-size: 24px; font-weight: 900; letter-spacing: .01em;
   text-shadow: 0 2px 12px rgba(0,0,0,.45); }
@@ -529,7 +537,7 @@ svg { display: block; }
 #view-home .report-tabs { justify-content: center; padding: 0 16px 12px; }
 #view-home .rtab { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #CFC1EE; }
 #view-home .rtab.on { background: #D9B45B; border-color: #D9B45B; color: #2a2140; font-weight: 800; }
-.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; padding: 4px 16px 18px; }
+.card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; padding: 4px 16px 18px; }
 .card-tile { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer;
   box-shadow: 0 5px 16px rgba(0,0,0,.4); transition: transform .16s; }
 .card-tile:active { transform: scale(.96); }
@@ -546,3 +554,5 @@ svg { display: block; }
 .attend-h { font-weight: 800; font-size: 14.5px; color: #2a2140; }
 .attend-p { font-size: 12px; color: #7a7590; }
 .empty-tab { text-align: center; color: #9C8FD0; font-size: 14px; padding: 70px 20px 90px; }
+.card-grid > .card-tile { min-width: 0; }
+.card-tile img { min-width: 0; max-width: 100%; }

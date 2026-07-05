@@ -200,7 +200,8 @@ function birthFields(child) {
     </div>`;
 }
 function renderBirthForm(id, f) {
-  $('view-reading').innerHTML = detailHead(f.title) + `<div id="profileMini"></div>` + birthFields(CHILD_SET.has(id)) +
+  const banner = (id === 'saju') ? `<img class="detail-banner" src="img/head_saju.jpg?v=1" alt="사주팔자" />` : '';
+  $('view-reading').innerHTML = detailHead(f.title) + banner + `<div id="profileMini"></div>` + birthFields(CHILD_SET.has(id)) +
     `<button class="btn" style="margin-top:16px" onclick="runReading('${id}')">${BIRTH_BTN[id]}</button></div><div id="sajuResult"></div>`;
   showView('reading');
 }
@@ -248,7 +249,7 @@ function runReading(id) {
   collapseForm(saju);
   if (id === 'saju') {
     $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div>
-      <div class="section"><div class="section-head"><h3>${LANG === 'en' ? 'Your Saju Reading' : '나의 사주 풀이'}</h3></div></div>${aiLoading(LANG === 'en' ? 'Reading your Saju…' : '사주 풀이 생성 중…')}`;
+      <div class="section"><div class="section-head"><h3>${LANG === 'en' ? 'Your Saju Reading' : '나의 사주 풀이'}</h3></div></div>${aiLoading(LANG === 'en' ? 'Starting your reading…' : '리딩을 시작하겠습니다…')}`;
     callAI(deepPrompt(saju)); return;
   }
   const pr = id === 'daily' ? dailyPrompt(saju) : id === 'newyear' ? newyearPrompt(saju) : id === 'child' ? childPrompt(saju) : teenPrompt(saju);
