@@ -545,3 +545,4 @@ svg { display: block; }
   background: rgba(255,255,255,.92); border-color: #F3E3A0; }
 .attend-h { font-weight: 800; font-size: 14.5px; color: #2a2140; }
 .attend-p { font-size: 12px; color: #7a7590; }
+.empty-tab { text-align: center; color: #9C8FD0; font-size: 14px; padding: 70px 20px 90px; }

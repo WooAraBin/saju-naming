@@ -143,7 +143,7 @@ function syncStaticViews() {
 const DONE = new Set(['saju', 'daily', 'newyear', 'couple', 'child', 'teen', 'moving', 'dream', 'face', 'name']);
 // 홈 탭 그룹: 0 운세 / 1 인맥 / 2 행운
 let homeTab = 0;
-const TAB_GROUPS = [['saju', 'daily', 'newyear'], ['couple', 'child', 'teen'], ['moving', 'dream', 'face', 'name']];
+const TAB_GROUPS = [['saju', 'couple', 'child', 'teen', 'daily', 'newyear'], [], ['moving', 'dream', 'face', 'name']];
 const CARD_IDS = new Set(['saju', 'couple', 'child', 'teen', 'daily', 'newyear']);
 function setHomeTab(i) { homeTab = i; renderHome(); }
 function renderHome() {
@@ -157,10 +157,13 @@ function renderHome() {
     return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div>${badgeEl}</div>`;
   }).join('');
   const tabs = [t('tab1'), t('tab2'), t('tab3')].map((nm, i) => `<div class="rtab ${i === homeTab ? 'on' : ''}" onclick="setHomeTab(${i})">${nm}</div>`).join('');
+  const body = TAB_GROUPS[homeTab].length
+    ? `<div class="card-grid">${tiles}</div>`
+    : `<div class="empty-tab">${LANG === 'en' ? 'Coming soon' : '준비 중이에요'}</div>`;
   $('view-home').innerHTML = `
     <div class="home-hd"><div class="home-title">${t('appName')} <span class="hcompass">✦</span></div></div>
     <div class="report-tabs">${tabs}</div>
-    <div class="card-grid">${tiles}</div>`;
+    ${body}`;
 }
 function detailHead(title) {
   return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div><div class="share">${ICONS.share}</div></div>`;
