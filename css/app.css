@@ -520,10 +520,10 @@ svg { display: block; }
 
 /* ── 홈: 보라 별밤 테마 + 카드 그리드 ── */
 #view-home { background:
-    linear-gradient(180deg, rgba(20,16,46,.58), rgba(20,16,46,.82) 55%, #14102e 92%),
-    url('../img/home_tree.jpg') no-repeat center 70px,
+    linear-gradient(180deg, rgba(20,16,46,.28), rgba(20,16,46,.42) 44%, rgba(20,16,46,.72) 80%, #14102e 100%),
+    url('../img/home_tree.jpg') no-repeat center 58px,
     radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
-  background-size: auto, 92% auto, auto;
+  background-size: auto, 118% auto, auto;
   min-height: calc(100vh - 56px); padding-bottom: 10px; }
 
 /* ── 상세 헤더 배너 (사주 등) ── */
