@@ -5,6 +5,76 @@
 const $ = (id) => document.getElementById(id);
 const API = '/api/explain'; // 동일 오리진(배포)
 
+/* ── i18n (KO/EN) ── */
+let LANG = localStorage.getItem('lang') || 'ko';
+const I18N = {
+  ko: {
+    appName: '운명 리더기',
+    nav_home: '홈', nav_archive: '보관함', nav_me: '내 정보',
+    tab1: '운세보고서', tab2: '인맥보고서', tab3: '행운보고서',
+    hero_k: '오늘의 사주', hero_h: '나를 읽는 시간', hero_p: '생년월일시로 나를 깊이 풀어드려요',
+    sasin_k: '동서남북을 지키는 사방신', sasin_h: '사신 (四神)',
+    oh_h: '오행 (五行) 그래프', oh_p: '내 오행이 얼마나 찼는지 오각형으로 · 저장·비교',
+    predict_k: '소름 돋는 미래 예측', predict_h: '가장 정확한 사주 풀이', viewall: '전체보기',
+    attend_h: '오늘도 운세 보고 복주머니 챙겨요', attend_p: '출석체크 · 매일 크레딧 적립 (준비 중)',
+    archive_h: '보관함', archive_empty: '보관한 결과가 없어요.', archive_sub: '본 결과는 여기 저장돼 다시 볼 수 있어요.',
+    me_h: '내 정보', me_p: '로그인 · 프로필 · 크레딧 (준비 중)',
+    dir_e: '동', dir_w: '서', dir_s: '남', dir_n: '북',
+    pw_h: '비밀번호를 입력하세요', pw_btn: '입력', pw_wrong: '비밀번호가 틀렸어요',
+    wel_enter: '들어가기', wel_tagline: '운명을 읽어주는 리더기',
+    visit: (n) => `오늘 <b>${n}</b>명이 다녀갔어요`, visit_first: '첫 방문을 환영합니다',
+    quick: ['☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세', '✍️ 이름점수'],
+  },
+  en: {
+    appName: 'Destiny Reader',
+    nav_home: 'Home', nav_archive: 'Archive', nav_me: 'Me',
+    tab1: 'Fortune', tab2: 'Network', tab3: 'Luck',
+    hero_k: 'Today’s Saju', hero_h: 'Time to read yourself', hero_p: 'A deep reading from your birth date & time',
+    sasin_k: 'Four guardians of the directions', sasin_h: 'Four Gods (四神)',
+    oh_h: 'Five Elements (五行) Chart', oh_p: 'See how full each element is · save & compare',
+    predict_k: 'Uncannily accurate', predict_h: 'The most precise Saju reading', viewall: 'See all',
+    attend_h: 'Check in daily for a lucky pouch', attend_p: 'Attendance · daily credits (coming soon)',
+    archive_h: 'Archive', archive_empty: 'No saved results yet.', archive_sub: 'Your readings are saved here to revisit.',
+    me_h: 'Me', me_p: 'Login · profile · credits (coming soon)',
+    dir_e: 'E', dir_w: 'W', dir_s: 'S', dir_n: 'N',
+    pw_h: 'Enter password', pw_btn: 'Enter', pw_wrong: 'Wrong password',
+    wel_enter: 'Enter', wel_tagline: 'A reader that reads your destiny',
+    visit: (n) => `<b>${n}</b> ${n === 1 ? 'person' : 'people'} visited today`, visit_first: 'Welcome, our first visitor!',
+    quick: ['☀️ Daily', '😎 Face', '🔮 Saju', '🎊 New Year', '✍️ Name'],
+  },
+};
+function t(k) { const d = I18N[LANG] || I18N.ko; return (k in d) ? d[k] : (k in I18N.ko ? I18N.ko[k] : k); }
+// 기능 타일 영문명 [title, sub]
+const FT_EN = {
+  saju: ['Saju · Four Pillars', 'Nature & lifelong fortune'], couple: ['Compatibility', 'Two people’s bond'],
+  child: ['Child Saju', 'Your child’s nature'], teen: ['Teen Phase', 'Adolescence tips'],
+  daily: ['Daily Reading', 'Today’s fortune'], newyear: ['New Year', 'This year’s flow'],
+  moving: ['Moving Date', 'Auspicious day & direction'], dream: ['Dream Reading', 'Last night’s dream'],
+  face: ['Face Reading', 'Fortune in your face'], name: ['Name Score', 'Strokes & sound elements'],
+};
+const featTitle = (f) => (LANG === 'en' && FT_EN[f.id]) ? FT_EN[f.id][0] : f.title;
+const featSub = (f) => (LANG === 'en' && FT_EN[f.id]) ? FT_EN[f.id][1] : f.sub;
+// AI 해설 언어 지시 (프롬프트 끝에 붙임)
+function aiLang() {
+  return LANG === 'en'
+    ? '\n\n[LANGUAGE] Write the ENTIRE response in natural, fluent English. Keep 명리(Four Pillars) technical terms as hanja with a short English gloss on first use, e.g. 正官 (Proper Officer), 比劫 (Peers). Do not output Korean.'
+    : '';
+}
+function setLang(l) {
+  LANG = (l === 'en') ? 'en' : 'ko';
+  localStorage.setItem('lang', LANG);
+  document.documentElement.lang = LANG;
+  syncLangChrome();
+  renderNav(); renderHome();
+  showView('home');
+}
+function toggleLang() { setLang(LANG === 'en' ? 'ko' : 'en'); }
+function syncLangChrome() {
+  const an = $('appName'); if (an) an.textContent = t('appName');
+  const lt = $('langTog'); if (lt) lt.textContent = (LANG === 'en') ? '한' : 'EN';
+  const me = $('view-me'); if (me) me.querySelector('.section-head h3') && (me.querySelector('.section-head h3').textContent = t('me_h'));
+}
+
 const FEATURES = [
   { id: 'saju', emoji: '🔮', title: '사주팔자', sub: '타고난 기질·평생 운', pay: 'pay' },
   { id: 'couple', emoji: '💑', title: '부부 궁합', sub: '두 사람의 인연', pay: 'pay' },
@@ -48,40 +118,46 @@ const ICONS = {
   share: _svg('<circle cx="6.5" cy="12" r="2.2"/><circle cx="17" cy="6" r="2.2"/><circle cx="17" cy="18" r="2.2"/><path d="M8.5 11L15 7M8.5 13.2L15 17"/>'),
 };
 function renderNav() {
-  const items = [['home', 'home', '홈'], ['archive', 'archive', '보관함'], ['me', 'me', '내 정보']];
+  const items = [['home', 'home', t('nav_home')], ['archive', 'archive', t('nav_archive')], ['me', 'me', t('nav_me')]];
   $('bottomNav').innerHTML = items.map(([v, ic, l]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="showView('${v}')"><div class="ico">${ICONS[ic]}</div>${l}</div>`).join('');
+  syncStaticViews();
+}
+// 정적 뷰(보관함·내정보) 텍스트도 언어 반영
+function syncStaticViews() {
+  const ar = $('view-archive'); if (ar) ar.innerHTML = `<div class="section" style="padding-top:20px"><div class="section-head"><h3>${t('archive_h')}</h3></div>
+    <div class="card" style="text-align:center;color:var(--ink-3);padding:40px 18px">📂<br/>${t('archive_empty')}<br/><span class="muted">${t('archive_sub')}</span></div></div>`;
+  const me = $('view-me'); if (me) me.innerHTML = `<div class="section" style="padding-top:20px"><div class="section-head"><h3>${t('me_h')}</h3></div>
+    <div class="card">${t('me_p')}</div></div>`;
 }
 const DONE = new Set(['saju', 'face', 'name']); // 제대로 구현+확인된 기능만 뱃지
 function renderHome() {
-  const quick = ['☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세', '✍️ 이름점수'];
-  const grid = FEATURES.map((f) => {
-    const done = DONE.has(f.id);
-    return `<div class="icon-item" onclick="openFeature('${f.id}')">
-      <div class="ic">${ICONS[f.id] || ''}<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${done ? '구현' : '준비'}</span></div>
-      <div class="icon-title">${f.title}</div>
-    </div>`;
-  }).join('');
+  const grid = FEATURES.map((f) =>
+    `<div class="icon-item" onclick="openFeature('${f.id}')">
+      <div class="ic">${ICONS[f.id] || ''}</div>
+      <div class="icon-title">${featTitle(f)}</div>
+    </div>`).join('');
+  const sasin = [['cheongryong', '청룡', 'Blue Dragon', 'dir_e'], ['jujak', '주작', 'Phoenix', 'dir_s'], ['baekho', '백호', 'White Tiger', 'dir_w'], ['hyeonmu', '현무', 'Turtle', 'dir_n']];
   $('view-home').innerHTML = `
-    <div class="report-tabs"><div class="rtab on">운세보고서</div><div class="rtab">인맥보고서</div><div class="rtab">행운보고서</div></div>
+    <div class="report-tabs"><div class="rtab on">${t('tab1')}</div><div class="rtab">${t('tab2')}</div><div class="rtab">${t('tab3')}</div></div>
     <div class="hero sasin-hero">
-      <div class="txt"><span class="kicker">오늘의 사주</span><h2>나를 읽는 시간</h2><p>생년월일시로 나를 깊이 풀어드려요</p></div>
-      <img class="hero-beast" src="img/sasin/cheongryong.png?v=4" alt="청룡" />
+      <div class="txt"><span class="kicker">${t('hero_k')}</span><h2>${t('hero_h')}</h2><p>${t('hero_p')}</p></div>
+      <img class="hero-beast" src="img/sasin/cheongryong.png?v=4" alt="" />
     </div>
-    <div class="quick-row">${quick.map((q) => `<div class="pill">${q}</div>`).join('')}</div>
-    <div class="section"><div class="section-head"><div><div class="sec-kicker">동서남북을 지키는 사방신</div><h3>사신 (四神)</h3></div></div></div>
-    <div class="sasin-row">${[['cheongryong', '청룡', '동'], ['jujak', '주작', '남'], ['baekho', '백호', '서'], ['hyeonmu', '현무', '북']].map(([f, n, d]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png?v=4" alt="${n}" /><div class="st-cap"><b>${n}</b><span>${d}</span></div></div>`).join('')}</div>
+    <div class="quick-row">${t('quick').map((q) => `<div class="pill">${q}</div>`).join('')}</div>
+    <div class="section"><div class="section-head"><div><div class="sec-kicker">${t('sasin_k')}</div><h3>${t('sasin_h')}</h3></div></div></div>
+    <div class="sasin-row">${sasin.map(([f, ko, en, dk]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png?v=4" alt="" /><div class="st-cap"><b>${LANG === 'en' ? en : ko}</b><span>${t(dk)}</span></div></div>`).join('')}</div>
     <div class="ohaeng-band" onclick="openOhaeng()">
-      <div class="ob-txt"><b>오행 (五行) 그래프</b><span>내 오행이 얼마나 찼는지 오각형으로 · 저장·비교</span>
+      <div class="ob-txt"><b>${t('oh_h')}</b><span>${t('oh_p')}</span>
         ${ohElemRow(38)}</div>
       <div class="ob-go">›</div>
     </div>
-    <div class="section"><div class="section-head"><div><div class="sec-kicker">소름 돋는 미래 예측</div><h3>가장 정확한 사주 풀이</h3></div><span class="more">전체보기</span></div></div>
+    <div class="section"><div class="section-head"><div><div class="sec-kicker">${t('predict_k')}</div><h3>${t('predict_h')}</h3></div><span class="more">${t('viewall')}</span></div></div>
     <div class="icon-grid">${grid}</div>
     <div class="section" style="padding-bottom:20px">
       <div class="card" style="margin:0;display:flex;align-items:center;gap:14px;background:var(--yellow-soft);border-color:#F3E3A0">
         <div style="font-size:34px">🧧</div>
-        <div style="flex:1"><div style="font-weight:800;font-size:14.5px">오늘도 운세 보고 복주머니 챙겨요</div><div class="muted">출석체크 · 매일 크레딧 적립 (준비 중)</div></div>
+        <div style="flex:1"><div style="font-weight:800;font-size:14.5px">${t('attend_h')}</div><div class="muted">${t('attend_p')}</div></div>
       </div>
     </div>`;
 }
@@ -149,7 +225,7 @@ function getSaju() {
   return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar' });
 }
 function callAI(prompt, image) {
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image ? { prompt, image } : { prompt }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image ? { prompt: prompt + aiLang(), image } : { prompt: prompt + aiLang() }) })
     .then((r) => r.json())
     .then((j) => { $('aiCard').innerHTML = j.text ? `<div class="md">${mdLite(j.text)}</div>` : '<div class="loading">잠시 후 다시 시도해주세요.</div>'; })
     .catch(() => { $('aiCard').innerHTML = '<div class="loading">분석 실패 — 다시 시도해주세요.</div>'; });
@@ -241,7 +317,7 @@ function runDream() {
   window._dreamMatches = m;
   $('sajuResult').innerHTML = aiLoading('전통 해몽 근거 대조 중…');
   const emo = window._dreamEmo || '', residue = ($('fResidue') && $('fResidue').value || '').trim();
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: dreamPrompt(t, window.DreamDB.evidence(m), emo, residue) }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: dreamPrompt(t, window.DreamDB.evidence(m), emo, residue) + aiLang() }) })
     .then((r) => r.json())
     .then((j) => renderDreamResult(j.text || '', t))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
@@ -307,7 +383,7 @@ function runNewyear() {
   const sw = window.Saju.sewoonForYear(saju, year);
   const yGz = sw.ganzhi, ysip = sw.sipsin;
   $('sajuResult').innerHTML = aiLoading(`${year} 신년운세 생성 중… (10~30초)`);
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: newyearPrompt2(saju, year, sw) }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: newyearPrompt2(saju, year, sw) + aiLang() }) })
     .then((r) => r.json())
     .then((j) => renderNewyearResult(j.text || '', year, yGz, ysip))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
@@ -395,7 +471,7 @@ function runCouple() {
   if (!A || !B) { alert('두 사람의 생년월일을 모두 입력하세요'); return; }
   const c = window.Saju.compatibility(A, B);
   $('sajuResult').innerHTML = aiLoading('궁합 분석 중… (10~30초)');
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: couplePrompt(A, B, c) }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: couplePrompt(A, B, c) + aiLang() }) })
     .then((r) => r.json())
     .then((j) => renderCoupleResult(j.text || '', c))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
@@ -452,7 +528,7 @@ function runMoving() {
   const year = parseInt($('mvYear').value) || new Date().getFullYear();
   const g = window.Saju.movingGuide(saju, year);
   $('sajuResult').innerHTML = aiLoading('이사 길방·길일 분석 중… (10~30초)');
-  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: movingPrompt(saju, g) }) })
+  fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: movingPrompt(saju, g) + aiLang() }) })
     .then((r) => r.json())
     .then((j) => renderMovingResult(j.text || '', g))
     .catch(() => { $('sajuResult').innerHTML = '<div class="card"><div class="loading">분석 실패 — 다시 시도해주세요.</div></div>'; });
@@ -1085,16 +1161,16 @@ function closeSheet() {
   ['sheetBg', 'sheetBox'].forEach((id) => { const el = document.getElementById(id); if (el) el.remove(); });
 }
 
-// ── 비밀번호 게이트 (1212) ──
+// ── 비밀번호 게이트 (1212) → 환영화면(운명 리더기 + 오늘 방문자 수) ──
 function passwordGate() {
   if (sessionStorage.getItem('sj_auth') === '1') return;
   const ov = document.createElement('div');
   ov.id = 'pwGate';
   ov.style.cssText = 'position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px';
   ov.innerHTML = `<div style="font-size:44px">🔒</div>
-    <div style="font-weight:800;font-size:17px">비밀번호를 입력하세요</div>
+    <div style="font-weight:800;font-size:17px">${t('pw_h')}</div>
     <input id="pwIn" type="password" inputmode="numeric" onkeydown="if(event.key==='Enter')pwCheck()" style="width:200px;padding:13px;text-align:center;font-size:18px;letter-spacing:4px;border:1px solid var(--line);border-radius:12px" />
-    <button class="btn" style="width:200px" onclick="pwCheck()">입력</button>`;
+    <button class="btn" style="width:200px" onclick="pwCheck()">${t('pw_btn')}</button>`;
   document.body.appendChild(ov);
   setTimeout(() => { const i = document.getElementById('pwIn'); if (i) i.focus(); }, 100);
 }
@@ -1102,8 +1178,43 @@ function pwCheck() {
   if (document.getElementById('pwIn').value === '1212') {
     sessionStorage.setItem('sj_auth', '1');
     const g = document.getElementById('pwGate'); if (g) g.remove();
-  } else { alert('비밀번호가 틀렸어요'); document.getElementById('pwIn').value = ''; }
+    showWelcome();
+  } else { alert(t('pw_wrong')); document.getElementById('pwIn').value = ''; }
 }
+// 오늘 방문 기록 + 오늘 방문자 수 (Supabase, 기기 client_id 기준 하루 1명)
+async function recordVisit() {
+  const c = sb(); if (!c) return null;
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await c.from('visits').upsert({ client_id: clientId(), day }, { onConflict: 'client_id,day' });
+    const { count, error } = await c.from('visits').select('*', { count: 'exact', head: true }).eq('day', day);
+    if (error) return null;
+    return count;
+  } catch (e) { return null; }
+}
+function showWelcome() {
+  if (sessionStorage.getItem('sj_welcomed') === '1') return;
+  sessionStorage.setItem('sj_welcomed', '1');
+  const splash = LANG === 'en' ? 'img/splash_en.jpg' : 'img/splash_ko.jpg';
+  const ov = document.createElement('div');
+  ov.id = 'welcome';
+  ov.innerHTML = `
+    <div class="wel-card">
+      <img class="wel-img" src="${splash}?v=1" alt="${t('appName')}" />
+      <div class="wel-body">
+        <div class="wel-name">${t('appName')}</div>
+        <div class="wel-tag">${t('wel_tagline')}</div>
+        <div class="wel-visit" id="welVisit"><span class="wel-dot"></span>…</div>
+        <button class="btn wel-enter" onclick="enterApp()">${t('wel_enter')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  recordVisit().then((n) => {
+    const el = $('welVisit'); if (!el) return;
+    el.innerHTML = (n && n > 0) ? t('visit')(n) : t('visit_first');
+  });
+}
+function enterApp() { const w = $('welcome'); if (w) w.remove(); }
 
-renderNav(); renderHome(); passwordGate();
+document.documentElement.lang = LANG; syncLangChrome(); renderNav(); renderHome(); passwordGate();
 Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, dreamEmo, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });

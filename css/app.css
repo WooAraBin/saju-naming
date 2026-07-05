@@ -493,3 +493,27 @@ svg { display: block; }
 .oh-elem-row { display: flex; gap: 9px; justify-content: center; align-items: flex-end; }
 .oh-elem-row img { filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
 .ohaeng-band .ob-txt .oh-elem-row { margin-top: 8px; justify-content: flex-start; }
+
+/* ── 언어 토글 ── */
+.lang-tog { font-size: 12px; font-weight: 800; color: var(--ink-mid); border: 1px solid var(--line-2);
+  border-radius: 14px; padding: 5px 11px; cursor: pointer; user-select: none; background: var(--surface); }
+.lang-tog:active { transform: scale(.96); }
+
+/* ── 환영 화면 (비번 통과 후) ── */
+#welcome { position: fixed; inset: 0; z-index: 1000; background: rgba(8,10,16,.72);
+  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 22px;
+  animation: welFade .25s ease; }
+@keyframes welFade { from { opacity: 0; } to { opacity: 1; } }
+.wel-card { width: 100%; max-width: 420px; background: var(--surface); border-radius: 22px; overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+.wel-img { width: 100%; display: block; aspect-ratio: 16/10; object-fit: cover; }
+.wel-body { padding: 20px 22px 24px; text-align: center; }
+.wel-name { font-size: 24px; font-weight: 900; letter-spacing: -.02em; }
+.wel-tag { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+.wel-visit { display: inline-flex; align-items: center; gap: 7px; margin: 16px auto 4px; font-size: 14px;
+  font-weight: 700; color: var(--ink-mid); background: var(--surface-2); border: 1px solid var(--line-2);
+  border-radius: 999px; padding: 8px 15px; }
+.wel-visit b { color: var(--primary, #7C6BE7); font-size: 16px; font-variant-numeric: tabular-nums; }
+.wel-dot { width: 8px; height: 8px; border-radius: 50%; background: #34c759; box-shadow: 0 0 0 3px rgba(52,199,89,.2); }
+.wel-enter { width: 100%; margin-top: 16px; }
+@media (prefers-reduced-motion: reduce) { #welcome { animation: none; } }
