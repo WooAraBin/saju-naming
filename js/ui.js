@@ -163,7 +163,7 @@ function renderHome() {
   $('view-home').innerHTML = `
     <div class="home-hd"><div class="home-title">${t('appName')} <span class="hcompass">✦</span></div></div>
     <div class="report-tabs">${tabs}</div>
-    <div class="tree-hero"></div>
+    <img class="tree-hero" src="img/home_tree.jpg?v=2" alt="운명 리더기" />
     ${body}`;
 }
 function detailHead(title) {
