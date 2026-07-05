@@ -520,11 +520,13 @@ svg { display: block; }
 
 /* ── 홈: 보라 별밤 테마 + 카드 그리드 ── */
 #view-home { background:
-    linear-gradient(180deg, rgba(20,16,46,.28), rgba(20,16,46,.42) 44%, rgba(20,16,46,.72) 80%, #14102e 100%),
-    url('../img/home_tree.jpg') no-repeat center 58px,
     radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
-  background-size: auto, 118% auto, auto;
   min-height: calc(100vh - 56px); padding-bottom: 10px; }
+/* 나무 히어로 밴드 (작게, 카드와 겹치지 않게) */
+.tree-hero { height: 190px; margin: 0 0 2px;
+  background: url('../img/home_tree.jpg') no-repeat center 8%; background-size: 66% auto;
+  -webkit-mask-image: linear-gradient(#000 70%, transparent 100%);
+  mask-image: linear-gradient(#000 70%, transparent 100%); }
 
 /* ── 상세 헤더 배너 (사주 등) ── */
 .detail-banner { width: calc(100% - 32px); margin: 2px 16px 14px; border-radius: 16px;
@@ -537,7 +539,7 @@ svg { display: block; }
 #view-home .report-tabs { justify-content: center; padding: 0 16px 12px; }
 #view-home .rtab { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #CFC1EE; }
 #view-home .rtab.on { background: #D9B45B; border-color: #D9B45B; color: #2a2140; font-weight: 800; }
-.card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; padding: 200px 16px 18px; }
+.card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; padding: 6px 16px 18px; }
 .card-tile { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer;
   box-shadow: 0 5px 16px rgba(0,0,0,.4); transition: transform .16s; }
 .card-tile:active { transform: scale(.96); }
