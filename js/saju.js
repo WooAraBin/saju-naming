@@ -54,7 +54,7 @@ function cheonganRel(gans) {
   const hap = [], chung = [];
   for (let i = 0; i < gans.length; i++) for (let j = i + 1; j < gans.length; j++) {
     const a = gans[i], b = gans[j];
-    if (GAN_HAP[a] && GAN_HAP[a][0] === b) hap.push(`${a}${b}합(化${GAN_HAP[a][1]}, ${_PN[i]}·${_PN[j]})`);
+    if (GAN_HAP[a] && GAN_HAP[a][0] === b) hap.push(`${a}${b}합(合, 化${GAN_HAP[a][1]}는 월령 조건부, ${_PN[i]}·${_PN[j]})`);
     if (GAN_CHUNG[a] === b) chung.push(`${a}${b}충(${_PN[i]}·${_PN[j]})`);
   }
   return { hap, chung };
@@ -107,6 +107,21 @@ function sinsalList(dayGan, zhis, pillarGZ, yearZhi) {
   if (MUNCHANG[dayGan] && has(MUNCHANG[dayGan])) r.push('문창귀인('+MUNCHANG[dayGan]+')');
   pillarGZ.forEach((gz, i) => { if (GWAEGANG.includes(gz)) r.push('괴강('+_PN[i]+'주)'); if (BAEKHO.includes(gz)) r.push('백호('+_PN[i]+'주)'); });
   return [...new Set(r)];
+}
+
+// 조후(調候) — 월지 계절 한난 + 조후용신(火/水) 힌트. 억부용신과 별개.
+const SEASON = { 寅:'초봄', 卯:'봄', 辰:'늦봄', 巳:'초여름', 午:'여름', 未:'늦여름', 申:'초가을', 酉:'가을', 戌:'늦가을', 亥:'초겨울', 子:'겨울', 丑:'늦겨울' };
+function computeJohu(dayGan, monthZhi, allZhis) {
+  const season = SEASON[monthZhi] || '';
+  const cold = ['亥', '子', '丑', '寅'].includes(monthZhi); // 한랭
+  const hot = ['巳', '午', '未', '申'].includes(monthZhi);  // 염열
+  const hiddenFire = allZhis.some((z) => (ZHI_HIDDEN_FULL[z] || []).some((g) => GAN_WX[g] === '화'));
+  const hiddenWater = allZhis.some((z) => (ZHI_HIDDEN_FULL[z] || []).some((g) => GAN_WX[g] === '수'));
+  let need = null, note = '';
+  if (cold) { need = '화'; note = `${season} 한랭 — 온기(火)가 조후용신. ` + (hiddenFire ? '지장간에 火 있어 온기 공급(다만 火가 관살·습토를 데우면 일간 자윤 손실 주의).' : '火 미약하면 냉습으로 정체.'); }
+  else if (hot) { need = '수'; note = `${season} 염열 — 자윤(水)이 조후용신. ` + (hiddenWater ? '지장간 水로 열기 완화.' : '水 부족하면 조열·건조.'); }
+  else { note = `${season} 온난 환절 — 조후 급하지 않음(억부 우선).`; }
+  return { season, 한난: cold ? '寒' : hot ? '熱' : '平', need, hiddenFire, hiddenWater, note };
 }
 
 // 십신(十神): 일간 기준 대상 천간의 관계
@@ -283,12 +298,13 @@ function computeSaju(opt) {
   const ganRel = cheonganRel(_gans);
   const jiRel = jijiRel(_zhis);
   const sinsal = sinsalList(dayGan, _zhis, _gz, pillars.year[1]);
+  const johu = computeJohu(dayGan, pillars.month[1], _zhis);
 
   if (timeUnknown) pillars.time = null; // 시주 미상 표기
 
   return {
     sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
-    detail, tti, timeUnknown, ganRel, jiRel, sinsal,
+    detail, tti, timeUnknown, ganRel, jiRel, sinsal, johu,
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
     offsetMin,

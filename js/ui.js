@@ -1028,24 +1028,32 @@ function deepPrompt(s) {
   const sipLine = `연주 ${p.year[0]}=${sp.year.gan}/${p.year[1]}=${sp.year.zhi}, 월주 ${p.month[0]}=${sp.month.gan}/${p.month[1]}=${sp.month.zhi}, 일주 ${p.day[0]}=일간/${p.day[1]}=${sp.day.zhi}` + (tu ? '' : `, 시주 ${p.time[0]}=${sp.time.gan}/${p.time[1]}=${sp.time.zhi}`);
   const hide = pKeys.map((k) => `${nm(k)} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
   const dwList = (s.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
-  const dw = s.daewoon, sw = s.sewoon, R = relLines(s);
+  const dw = s.daewoon, sw = s.sewoon, R = relLines(s), J = s.johu || {};
+  const gc = (s.sip && s.sip.groupCount) || {};
+  const sipDist = Object.keys(gc).filter((k) => gc[k]).map((k) => k + gc[k]).join(', ');
+  const cntStr = window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ');
   return `너는 20년 경력의 자평명리 상담가이자 MZ 감성 카피라이터다. 아래 사주를 정확한 명리 위에 위트 있게, 깊고 길게 "심층 캐릭터 리포트"로 써라.
 
 [규칙]
 1. 인사말 없이 첫 줄부터 일간(${s.dayGan}${s.dayWx})과 오행을 의인화한 캐릭터/물상 비유로 시작, 끝까지 유지.
 2. 아래 ## 섹션들을 만든다. 제목은 신조어·밈·구어로 후킹(명리용어 직접노출 금지). 본문 2~3문단 — 구어체 공감 + 데이터 근거(간지·십신 한자병기 예 편인(偏印), 신살, OO충/반합, 십이운성) 인용 + 행동처방.
-   ## (한 줄 비유) ## 타고난 성격 ## 오행과 용신 ## 십신 적성 ## 천간지지 관계 ## 신살 풀이 ## 숨은 약점 ## 강점·귀인 ## 직업·재물 ## 연애·인간관계 ## 대운 흐름 ## 올해 운세 ## 방향·마무리
+   ## (한 줄 비유) ## 타고난 성격 ## 오행·용신·조후 ## 십신 적성 ## 천간지지 관계 ## 신살 풀이 ## 숨은 약점 ## 강점·귀인 ## 직업·재물 ## 연애·인간관계 ## 대운 흐름 ## 올해 운세 ## 방향·마무리
 3. 단정+긍정, 재치. 불행·질병·사망 단정 금지. 데이터에 없는 합충·신살 지어내지 말 것.${tu ? '\n4. 출생시각 미상 — 시주 기반 해석 금지.' : ''}
+5. [정확성 절대규칙] 오행 개수·십신 분포·신강/신약·천간 합충·지지 형충파해·신살은 아래 [데이터]의 수치·항목을 **그대로** 인용하라. 네가 다시 세거나 바꾸지 마라. 특히 오행 개수(예: '토 ${s.count.토}개')는 데이터 숫자와 100% 일치시키고, 임의로 다른 숫자를 말하지 마라. 형(刑)·삼형은 데이터에 적힌 글자 구성을 그대로 언급하라(연지 등 누락 금지).
+6. 천간합은 '두 기운이 묶임'을 뜻하고, 化(오행 변화)는 월령 등 조건이 맞아야 성립한다. "化○를 만들어낸다"고 단정하지 말고 "합으로 묶인다 / 조건부로 化한다"로 표현하라.
+7. 용신은 **억부용신**(데이터 '용신')과 **조후용신**(데이터 '조후')을 구분해 설명하라. 둘이 다르면 그 긴장을 짚어라(예: 신약이라 억부는 금·수인데 조후로는 火가 필요 → 火가 관살을 키우면 일간이 더 힘들어지는 딜레마).
 
 [사주 데이터]
 사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day}${tu ? ' / 시 미상' : ` / 시 ${p.time}`}
 일간: ${s.dayGan}(${s.dayWx}), ${s.isStrong ? '신강' : '신약'}, ${s.tti}띠
-오행: ${window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ')}
+오행 개수(이 숫자 그대로 사용): ${cntStr}
+십신 분포: ${sipDist || '-'}
 십신 배치: ${sipLine}
 지장간: ${hide}
 십이운성: ${pKeys.map((k) => `${nm(k)}${(dt[k] || {}).unseong || ''}`).join(' ')}
 천간관계: ${R.gan} / 지지관계: ${R.ji} / 신살: ${R.sinsal}
-용신: ${(s.yongsin || []).join('·') || '-'} / 부족오행: ${(s.lacking || []).join('·') || '없음'}
+억부용신: ${(s.yongsin || []).join('·') || '-'} / 부족오행: ${(s.lacking || []).join('·') || '없음'}
+조후: ${J.season || '-'} / 한난 ${J['한난'] || '-'} / 조후용신 ${J.need || '없음(온난)'} — ${J.note || ''}
 대운: ${dwList}
 현재대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'} / 올해세운: ${sw ? `${sw.year} ${sw.ganzhi}(${sw.sipsin})` : '-'}`;
 }
