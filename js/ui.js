@@ -141,34 +141,26 @@ function syncStaticViews() {
 }
 // 구현 완료 기능(전부 작동). 준비중이면 여기서 빼면 '준비' 뱃지.
 const DONE = new Set(['saju', 'daily', 'newyear', 'couple', 'child', 'teen', 'moving', 'dream', 'face', 'name']);
+// 홈 탭 그룹: 0 운세 / 1 인맥 / 2 행운
+let homeTab = 0;
+const TAB_GROUPS = [['saju', 'daily', 'newyear'], ['couple', 'child', 'teen'], ['moving', 'dream', 'face', 'name']];
+const CARD_IDS = new Set(['saju', 'couple', 'child', 'teen', 'daily', 'newyear']);
+function setHomeTab(i) { homeTab = i; renderHome(); }
 function renderHome() {
-  const grid = FEATURES.map((f) => {
-    const done = DONE.has(f.id);
+  const tiles = TAB_GROUPS[homeTab].map((id) => {
+    const f = featById(id), done = DONE.has(id);
     const badge = LANG === 'en' ? (done ? 'Live' : 'Soon') : (done ? '구현' : '준비');
-    return `<div class="icon-item" onclick="openFeature('${f.id}')">
-      <div class="ic">${ICONS[f.id] || ''}<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${badge}</span></div>
-      <div class="icon-title">${featTitle(f)}</div>
-    </div>`;
+    const badgeEl = `<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'} card-badge">${badge}</span>`;
+    if (CARD_IDS.has(id) && LANG !== 'en') {
+      return `<div class="card-tile" onclick="openFeature('${id}')"><img src="img/cards/${id}.png?v=1" alt="${featTitle(f)}" />${badgeEl}</div>`;
+    }
+    return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div>${badgeEl}</div>`;
   }).join('');
+  const tabs = [t('tab1'), t('tab2'), t('tab3')].map((nm, i) => `<div class="rtab ${i === homeTab ? 'on' : ''}" onclick="setHomeTab(${i})">${nm}</div>`).join('');
   $('view-home').innerHTML = `
-    <div class="report-tabs"><div class="rtab on">${t('tab1')}</div><div class="rtab">${t('tab2')}</div><div class="rtab">${t('tab3')}</div></div>
-    <div class="hero sasin-hero">
-      <div class="txt"><span class="kicker">${t('hero_k')}</span><h2>${t('hero_h')}</h2><p>${t('hero_p')}</p></div>
-    </div>
-    <div class="quick-row">${t('quick').map((q) => `<div class="pill">${q}</div>`).join('')}</div>
-    <div class="ohaeng-band" onclick="openOhaeng()">
-      <div class="ob-txt"><b>${t('oh_h')}</b><span>${t('oh_p')}</span>
-        ${ohElemRow(38)}</div>
-      <div class="ob-go">›</div>
-    </div>
-    <div class="section"><div class="section-head"><div><div class="sec-kicker">${t('predict_k')}</div><h3>${t('predict_h')}</h3></div><span class="more">${t('viewall')}</span></div></div>
-    <div class="icon-grid">${grid}</div>
-    <div class="section" style="padding-bottom:20px">
-      <div class="card" style="margin:0;display:flex;align-items:center;gap:14px;background:var(--yellow-soft);border-color:#F3E3A0">
-        <div style="font-size:34px">🧧</div>
-        <div style="flex:1"><div style="font-weight:800;font-size:14.5px">${t('attend_h')}</div><div class="muted">${t('attend_p')}</div></div>
-      </div>
-    </div>`;
+    <div class="home-hd"><div class="home-title">${t('appName')} <span class="hcompass">✦</span></div></div>
+    <div class="report-tabs">${tabs}</div>
+    <div class="card-grid">${tiles}</div>`;
 }
 function detailHead(title) {
   return `<div class="detail-head"><div class="back" onclick="showView('home')">‹</div><div class="title">${title}</div><div class="share">${ICONS.share}</div></div>`;
