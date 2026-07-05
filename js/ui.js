@@ -139,23 +139,23 @@ function syncStaticViews() {
   const me = $('view-me'); if (me) me.innerHTML = `<div class="section" style="padding-top:20px"><div class="section-head"><h3>${t('me_h')}</h3></div>
     <div class="card">${t('me_p')}</div></div>`;
 }
-const DONE = new Set(['saju', 'face', 'name']); // 제대로 구현+확인된 기능만 뱃지
+// 구현 완료 기능(전부 작동). 준비중이면 여기서 빼면 '준비' 뱃지.
+const DONE = new Set(['saju', 'daily', 'newyear', 'couple', 'child', 'teen', 'moving', 'dream', 'face', 'name']);
 function renderHome() {
-  const grid = FEATURES.map((f) =>
-    `<div class="icon-item" onclick="openFeature('${f.id}')">
-      <div class="ic">${ICONS[f.id] || ''}</div>
+  const grid = FEATURES.map((f) => {
+    const done = DONE.has(f.id);
+    const badge = LANG === 'en' ? (done ? 'Live' : 'Soon') : (done ? '구현' : '준비');
+    return `<div class="icon-item" onclick="openFeature('${f.id}')">
+      <div class="ic">${ICONS[f.id] || ''}<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'}">${badge}</span></div>
       <div class="icon-title">${featTitle(f)}</div>
-    </div>`).join('');
-  const sasin = [['cheongryong', '청룡', 'Blue Dragon', 'dir_e'], ['jujak', '주작', 'Phoenix', 'dir_s'], ['baekho', '백호', 'White Tiger', 'dir_w'], ['hyeonmu', '현무', 'Turtle', 'dir_n']];
+    </div>`;
+  }).join('');
   $('view-home').innerHTML = `
     <div class="report-tabs"><div class="rtab on">${t('tab1')}</div><div class="rtab">${t('tab2')}</div><div class="rtab">${t('tab3')}</div></div>
     <div class="hero sasin-hero">
       <div class="txt"><span class="kicker">${t('hero_k')}</span><h2>${t('hero_h')}</h2><p>${t('hero_p')}</p></div>
-      <img class="hero-beast" src="img/sasin/cheongryong.png?v=4" alt="" />
     </div>
     <div class="quick-row">${t('quick').map((q) => `<div class="pill">${q}</div>`).join('')}</div>
-    <div class="section"><div class="section-head"><div><div class="sec-kicker">${t('sasin_k')}</div><h3>${t('sasin_h')}</h3></div></div></div>
-    <div class="sasin-row">${sasin.map(([f, ko, en, dk]) => `<div class="sasin-tile s-${f}"><img src="img/sasin/${f}.png?v=4" alt="" /><div class="st-cap"><b>${LANG === 'en' ? en : ko}</b><span>${t(dk)}</span></div></div>`).join('')}</div>
     <div class="ohaeng-band" onclick="openOhaeng()">
       <div class="ob-txt"><b>${t('oh_h')}</b><span>${t('oh_p')}</span>
         ${ohElemRow(38)}</div>
