@@ -1035,6 +1035,7 @@ function deepPrompt(s) {
   const hide = pKeys.map((k) => `${nm(k)} ${p[k][1]}(${(dt[k] || {}).hideGan || ''})`).join(', ');
   const dwList = (s.daewoonList || []).map((d) => `${d.startAge}세~ ${d.ganzhi}(${d.sipsin})`).join(', ');
   const dw = s.daewoon, sw = s.sewoon, R = relLines(s), J = s.johu || {};
+  const swE = sw ? window.Saju.sewoonForYear(s, sw.year) : null; // 복음 등 세운 상세
   const gc = (s.sip && s.sip.groupCount) || {};
   const sipDist = Object.keys(gc).filter((k) => gc[k]).map((k) => k + gc[k]).join(', ');
   const cntStr = window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ');
@@ -1066,8 +1067,10 @@ function deepPrompt(s) {
 [내용 규칙]
 6. 단정+긍정, 따뜻함. 불행·질병·사망 단정 금지. 데이터에 없는 합충·신살 지어내지 말 것.${tu ? '\n7. 출생시각 미상 — 시주 기반 해석 금지.' : ''}
 8. [정확성 절대규칙] 오행 개수·십신 분포·신강/신약·천간 합충·지지 형충파해·신살은 아래 [데이터]의 수치·항목을 그대로 인용하라. 다시 세거나 바꾸지 마라. 오행 개수(예: '토 ${s.count.토}개')는 데이터 숫자와 100% 일치. 형·삼형은 데이터의 글자 구성 그대로(연지 등 누락 금지).
-9. 천간합은 '두 기운이 묶이는 것'이며 오행이 완전히 바뀌는 것(化)은 조건이 맞아야 성립한다. "○를 만들어낸다"고 단정 말고 "묶인다 / 조건부로 바뀐다"로.
+9. 천간합·지지 육합은 '두 기운이 묶이는 것'이며 오행이 완전히 바뀌는 것(化)은 조건이 맞아야 한다. 데이터에 '무화(化氣 없음)'로 적힌 합(예: 오미합)은 오행 변화가 없으니 "○로 변한다"고 하지 마라. 합의 위치가 '원격'(인접하지 않고 사이에 다른 지지가 낀 격합)이면 작용력이 약하니 강하게 단정 말고 "약하게 묶인다"로 — 데이터의 인접/원격·무화 표기를 반드시 반영.
 10. 용신은 억부용신(데이터 '억부용신')과 조후용신(데이터 '조후')을 구분하되, 용어보다 뜻으로 설명하라(억부=일간 힘의 균형, 조후=계절의 춥고 더움 균형). 둘이 다르면 그 딜레마를 쉽게 짚어라.
+11. [올해 경고] 데이터 올해세운에 '복음(伏吟)' 또는 '양인 복음'이 있으면 반드시 다뤄라 — 원국과 같은 글자가 세운에 그대로 겹치는 것이다. 자신감·에너지가 커지는 긍정면과 함께, 전통적으로 사고·수술·급한 감정기복·관재구설을 조심하라는 주의를 균형있게 안내(공포 조성 금지).
+12. [마무리 처방] '## 마무리 조언'에는 부족·필요한 오행을 보완하는 구체 처방을 꼭 넣어라 — 행운 색(예: 화 필요 시 붉은 계열 옷), 장신구·소재(금 필요 시 금팔찌·흰색 금속), 이로운 방위, 생활습관·취미 등 실생활 팁으로.
 
 [사주 데이터]
 사주팔자: 연 ${p.year} / 월 ${p.month} / 일 ${p.day}${tu ? ' / 시 미상' : ` / 시 ${p.time}`}
@@ -1081,7 +1084,7 @@ function deepPrompt(s) {
 억부용신: ${(s.yongsin || []).join('·') || '-'} / 부족오행: ${(s.lacking || []).join('·') || '없음'}
 조후: ${J.season || '-'} / 한난 ${J['한난'] || '-'} / 조후용신 ${J.need || '없음(온난)'} — ${J.note || ''}
 대운: ${dwList}
-현재대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'} / 올해세운: ${sw ? `${sw.year} ${sw.ganzhi}(${sw.sipsin})` : '-'}`;
+현재대운: ${dw ? `${dw.ganzhi}(${dw.sipsin}, ${dw.startAge}세~)` : '-'} / 올해세운: ${sw ? `${sw.year} ${sw.ganzhi}(${sw.sipsin})${swE && swE.bokeum ? ' · ' + swE.bokeum : ''}${swE && swE.yanginBokeum ? ' · 양인 복음(사고·수술·감정기복·관재 주의)' : ''}` : '-'}`;
 }
 function sajuLine(s) {
   return `일간 ${s.dayGan}(${s.dayWx}) ${s.isStrong ? '신강' : '신약'} · ${s.tti}띠 · 오행 ${window.Saju.WX_KO.map((o) => o + s.count[o]).join(' ')} · 용신 ${(s.yongsin || []).join('·') || '-'} · 팔자 ${s.pillars.year}/${s.pillars.month}/${s.pillars.day}${s.timeUnknown ? '' : '/' + s.pillars.time}`;

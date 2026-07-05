@@ -61,7 +61,8 @@ function cheonganRel(gans) {
 }
 
 // 지지 합/충/형/파/해
-const YUKHAP = { 子丑:'土',丑子:'土',寅亥:'木',亥寅:'木',卯戌:'火',戌卯:'火',辰酉:'金',酉辰:'金',巳申:'水',申巳:'水',午未:'火',未午:'火' };
+// 지지 육합. 午未는 화기(化氣) 없음(무화) — 합만 되고 오행 변화 없음(정설).
+const YUKHAP = { 子丑:'土',丑子:'土',寅亥:'木',亥寅:'木',卯戌:'火',戌卯:'火',辰酉:'金',酉辰:'金',巳申:'水',申巳:'水',午未:'無',未午:'無' };
 const SAMHAP = [['申','子','辰','水'],['寅','午','戌','火'],['巳','酉','丑','金'],['亥','卯','未','木']];
 const BANGHAP = [['寅','卯','辰','木'],['巳','午','未','火'],['申','酉','戌','金'],['亥','子','丑','水']];
 const CHUNG6 = [['子','午'],['丑','未'],['寅','申'],['卯','酉'],['辰','戌'],['巳','亥']];
@@ -74,7 +75,7 @@ function jijiRel(zhis) {
   const pair = (list, a, b) => list.some((c) => (c[0]===a&&c[1]===b)||(c[1]===a&&c[0]===b));
   for (let i = 0; i < zhis.length; i++) for (let j = i + 1; j < zhis.length; j++) {
     const a = zhis[i], b = zhis[j], near = (Math.abs(i-j)===1) ? '인접' : '원격';
-    if (YUKHAP[a+b]) o.yukhap.push(`${a}${b}육합(化${YUKHAP[a+b]}, ${_PN[i]}·${_PN[j]}, ${near})`);
+    if (YUKHAP[a+b]) { const w = YUKHAP[a+b]; o.yukhap.push(`${a}${b}육합(${w === '無' ? '化氣 없음(무화)' : '化' + w}, ${_PN[i]}·${_PN[j]}, ${near})`); }
     if (pair(CHUNG6,a,b)) o.chung.push(`${a}${b}충(${_PN[i]}·${_PN[j]}, ${near})`);
     if (pair(HAE6,a,b)) o.hae.push(`${a}${b}해(${_PN[i]}·${_PN[j]})`);
     if (pair(PA6,a,b)) o.pa.push(`${a}${b}파(${_PN[i]}·${_PN[j]})`);
@@ -333,10 +334,17 @@ function sewoonForYear(saju, year) {
   const tri = SAMJAE_TRIPLE[yearZhi] || [];
   const sjIdx = tri.indexOf(zhi);
   const yong = saju.yongsin || [];
+  // 복음(伏吟) — 세운 지지가 원국 지지와 같은 글자로 겹침
+  const _pk = saju.timeUnknown ? ['year', 'month', 'day'] : ['year', 'month', 'day', 'time'];
+  const _kn = { year: '연지', month: '월지', day: '일지', time: '시지' };
+  const bokeumParts = _pk.filter((k) => saju.pillars[k] && saju.pillars[k][1] === zhi).map((k) => _kn[k]);
+  const bokeum = bokeumParts.length ? bokeumParts.join('·') + ' 복음(伏吟)' : null;
+  const yanginBokeum = (YANGIN[saju.dayGan] === zhi) && bokeumParts.length > 0; // 양인이 세운서 겹침
   return {
     year, ganzhi: gz, gan, zhi,
     sipsin: sipsin(saju.dayGan, gan),
     wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
+    bokeum, yanginBokeum,
     chungIl: isChung6(zhi, dayZhi),      // 태세충 = 세운지가 일지(본인)를 충
     chungYear: isChung6(zhi, yearZhi),   // 세운지가 연지를 충
     ganHap: (GAN_HAP[saju.dayGan] && GAN_HAP[saju.dayGan][0] === gan) ? GAN_HAP[saju.dayGan][1] : null,
