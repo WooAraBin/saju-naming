@@ -421,8 +421,8 @@ svg { display: block; }
 
 /* ── 사신수 만화풍 아이콘 (홈 로고·히어로·방위 모티프) ── */
 .topbar .logo { display: flex; align-items: center; gap: 7px; }
-.logo-mark { height: 27px; width: 27px; object-fit: contain; object-position: top;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+.logo-mark { height: 30px; width: 30px; object-fit: cover; object-position: center; border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .sasin-hero { background: linear-gradient(135deg, #16203A, #0D1730); position: relative; }
 .sasin-hero .kicker { background: rgba(255,255,255,.14); color: #EAF1FF; }
 .sasin-hero h2 { color: #fff; }
@@ -506,7 +506,7 @@ svg { display: block; }
 @keyframes welFade { from { opacity: 0; } to { opacity: 1; } }
 .wel-card { width: 100%; max-width: 420px; background: var(--surface); border-radius: 22px; overflow: hidden;
   box-shadow: 0 24px 70px rgba(0,0,0,.5); }
-.wel-img { width: 100%; display: block; aspect-ratio: 16/10; object-fit: cover; }
+.wel-img { width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover; }
 .wel-body { padding: 20px 22px 24px; text-align: center; }
 .wel-name { font-size: 24px; font-weight: 900; letter-spacing: -.02em; }
 .wel-tag { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }

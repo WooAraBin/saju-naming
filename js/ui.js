@@ -1232,7 +1232,7 @@ async function recordVisit() {
 function showWelcome() {
   if (sessionStorage.getItem('sj_welcomed') === '1') return;
   sessionStorage.setItem('sj_welcomed', '1');
-  const splash = LANG === 'en' ? 'img/splash_en.jpg' : 'img/splash_ko.jpg';
+  const splash = LANG === 'en' ? 'img/splash_en.jpg' : 'img/reader_ko.jpg';
   const ov = document.createElement('div');
   ov.id = 'welcome';
   ov.innerHTML = `
