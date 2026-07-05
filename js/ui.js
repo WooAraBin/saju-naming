@@ -9,7 +9,7 @@ const API = '/api/explain'; // 동일 오리진(배포)
 let LANG = localStorage.getItem('lang') || 'ko';
 const I18N = {
   ko: {
-    appName: '운명 리더기',
+    appName: '운명 리더기', slogan: '당신의 운명을 읽다',
     nav_home: '홈', nav_archive: '보관함', nav_me: '내 정보',
     tab1: '운세보고서', tab2: '인맥보고서', tab3: '행운보고서',
     hero_k: '오늘의 사주', hero_h: '나를 읽는 시간', hero_p: '생년월일시로 나를 깊이 풀어드려요',
@@ -26,7 +26,7 @@ const I18N = {
     quick: ['☀️ 오늘의 운세', '😎 관상', '🔮 정통사주', '🎊 신년운세', '✍️ 이름점수'],
   },
   en: {
-    appName: 'Destiny Reader',
+    appName: 'Destiny Reader', slogan: 'Read your destiny.',
     nav_home: 'Home', nav_archive: 'Archive', nav_me: 'Me',
     tab1: 'Fortune', tab2: 'Network', tab3: 'Luck',
     hero_k: 'Today’s Saju', hero_h: 'Time to read yourself', hero_p: 'A deep reading from your birth date & time',
@@ -80,6 +80,7 @@ function setLang(l) {
 function toggleLang() { setLang(LANG === 'en' ? 'ko' : 'en'); }
 function syncLangChrome() {
   const an = $('appName'); if (an) an.textContent = t('appName');
+  const sl = $('appSlogan'); if (sl) sl.textContent = t('slogan');
   const lt = $('langTog'); if (lt) lt.textContent = (LANG === 'en') ? '한' : 'EN';
   const me = $('view-me'); if (me) me.querySelector('.section-head h3') && (me.querySelector('.section-head h3').textContent = t('me_h'));
 }
