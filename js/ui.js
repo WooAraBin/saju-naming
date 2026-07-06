@@ -125,6 +125,7 @@ const ICONS = {
   home: _svg('<path d="M4.5 11L12 4.5 19.5 11"/><path d="M6.5 9.5V19h11V9.5"/>'),
   archive: _svg('<path d="M4 8.5V18a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 18V8.5"/><path d="M3.5 5h17v3.5h-17z"/><path d="M10 12h4"/>'),
   me: _svg('<circle cx="12" cy="8.5" r="3.5"/><path d="M5.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/>'),
+  scroll: _svg('<path d="M7 5h9a2 2 0 0 1 2 2v10a2 2 0 0 0 2 2H9a2 2 0 0 1-2-2z"/><path d="M7 5a2 2 0 0 0-2 2v1.5h2.5"/><path d="M10 9h5M10 12h5M10 15h3"/>'),
   share: _svg('<circle cx="6.5" cy="12" r="2.2"/><circle cx="17" cy="6" r="2.2"/><circle cx="17" cy="18" r="2.2"/><path d="M8.5 11L15 7M8.5 13.2L15 17"/>'),
 };
 function renderNav() {
@@ -132,6 +133,7 @@ function renderNav() {
     ['home', 'daily', LANG === 'en' ? 'Reading' : '운세 리딩', "showView('home')"],
     ['deep', 'me', LANG === 'en' ? 'Deep' : '심층 운세', 'renderDeep()'],
     ['extra', 'archive', LANG === 'en' ? 'More' : '추가 기능', 'renderExtra()'],
+    ['legacy', 'scroll', LANG === 'en' ? 'Origin' : '원래 시안', 'renderLegacy()'],
     ['me', 'me', LANG === 'en' ? 'Me' : '내 정보', "showView('me')"],
   ];
   $('bottomNav').innerHTML = items.map(([v, ic, l, act]) =>
@@ -152,10 +154,26 @@ function renderGridView(viewId, title, ids) {
   $(viewId).innerHTML = `<div class="section" style="padding:18px 16px 10px"><div class="section-head"><h3>${title}</h3></div></div><div class="card-grid" style="padding-top:0">${ids.map(cardTile).join('')}</div>`;
   showView(viewId.replace('view-', ''));
 }
-// 심층 운세: 부부궁합·자식사주·자식사춘기
-function renderDeep() { renderGridView('view-deep', LANG === 'en' ? 'Deep Reading' : '심층 운세', ['couple', 'child', 'teen']); }
+// 심층 운세: 히어로 이미지 + 부부사주·자식사주·자식사춘기
+function renderDeep() {
+  const ids = ['couple', 'child', 'teen'];
+  const title = LANG === 'en' ? 'Deep Reading' : '심층 운세';
+  const hero = LANG !== 'en' ? `<img class="deep-hero" src="img/deep_hero.png?v=1" alt="${title}" />` : '';
+  $('view-deep').innerHTML = hero +
+    `<div class="card-grid" style="padding-top:4px">${ids.map(cardTile).join('')}</div>`;
+  showView('deep');
+}
 // 추가 기능: 이사택일·꿈해몽·관상·이름점수
 function renderExtra() { renderGridView('view-extra', LANG === 'en' ? 'More' : '추가 기능', ['moving', 'dream', 'face', 'name']); }
+// 원래 시안: 처음 만들었던 '사주풀이·관상·작명' 디자인을 iframe으로 보존
+function renderLegacy() {
+  const v = $('view-legacy');
+  if (!v.dataset.loaded) {
+    v.innerHTML = `<iframe class="legacy-frame" src="legacy/index.html" title="원래 시안" loading="lazy"></iframe>`;
+    v.dataset.loaded = '1';
+  }
+  showView('legacy');
+}
 // 정적 뷰(보관함·내정보) 텍스트도 언어 반영
 function syncStaticViews() {
   const ar = $('view-archive'); if (ar) ar.innerHTML = `<div class="section" style="padding-top:20px"><div class="section-head"><h3>${t('archive_h')}</h3></div>
