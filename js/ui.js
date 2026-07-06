@@ -107,6 +107,8 @@ function showView(name) {
   document.querySelectorAll('.view').forEach((v) => v.classList.remove('on'));
   $('view-' + name).classList.add('on');
   document.querySelectorAll('.bottom-nav .nav-item').forEach((n) => n.classList.toggle('on', n.dataset.v === name));
+  // 상단바(운명 리더기)는 운세 리딩(home)에서만 표시
+  const tb = document.querySelector('.topbar'); if (tb) tb.style.display = (name === 'home') ? '' : 'none';
   window.scrollTo(0, 0);
 }
 /* ── 라인 아이콘(SVG) — 이모지 금지, 점신 톤 ── */

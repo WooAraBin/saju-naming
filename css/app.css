@@ -563,12 +563,12 @@ svg { display: block; }
 .card-tile img { min-width: 0; max-width: 100%; }
 /* ── 심층 운세 페이지 ── */
 #view-deep { background: radial-gradient(130% 90% at 50% -8%, #3b2f70 0%, #221b48 48%, #14102e 100%);
-  min-height: calc(100dvh - 112px); }
+  min-height: calc(100dvh - 60px); }
 .deep-hero { width: calc(100% - 24px); margin: 12px 12px 2px; border-radius: 18px; display: block;
   box-shadow: 0 8px 22px rgba(0,0,0,.4); }
 /* ── 원래 시안(iframe 보존) ── */
 #view-legacy.on { display: flex; }
-.legacy-frame { width: 100%; height: calc(100dvh - 112px); border: 0; display: block; background: #fff; }
+.legacy-frame { width: 100%; height: calc(100dvh - 60px); border: 0; display: block; background: #fff; }
 
 /* ── 홈 이벤트 박스 (그림과 카드 사이) ── */
 .event-box { margin: 0 16px 12px; display: flex; align-items: center; gap: 12px;
