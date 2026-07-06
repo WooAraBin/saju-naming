@@ -98,6 +98,25 @@ const FEATURES = [
   { id: 'name', emoji: '✍️', title: '이름점수', sub: '이름 획수·음오행', pay: 'pay' },
 ];
 const featById = (id) => FEATURES.find((f) => f.id === id);
+// 출생 도시 → 경도(지방시·진태양시 보정). '해외·모름'은 보정 안 함(null).
+const CITY = {
+  '서울': 126.98, '인천': 126.70, '수원': 127.03, '성남': 127.13, '용인': 127.18,
+  '일산': 126.77, '산본': 126.93,
+  '춘천': 127.73, '강릉': 128.90, '청주': 127.49, '세종': 127.29, '대전': 127.38,
+  '천안': 127.15, '전주': 127.15, '광주': 126.85, '목포': 126.39, '여수': 127.66,
+  '순천': 127.49, '대구': 128.60, '예천': 128.45, '안동': 128.73, '포항': 129.36, '경주': 129.22,
+  '부산': 129.08, '울산': 129.31, '창원': 128.68, '진주': 128.11, '제주': 126.53,
+  '개성(북)': 126.55, '평양(북)': 125.75,
+  '해외·모름': null,
+};
+function cityOptions() {
+  const names = Object.keys(CITY).sort((a, b) => {
+    if (a === '해외·모름') return 1;
+    if (b === '해외·모름') return -1;
+    return a.localeCompare(b, 'ko');
+  });
+  return names.map((c) => `<option value="${c}"${c === '서울' ? ' selected' : ''}>${c}</option>`).join('');
+}
 const WXHEX = { 목: '#4C9AFF', 화: '#FF6B6B', 토: '#FFC94D', 금: '#C9CED8', 수: '#2B2F3A' };
 const GAN_KO = { 甲: '갑', 乙: '을', 丙: '병', 丁: '정', 戊: '무', 己: '기', 庚: '경', 辛: '신', 壬: '임', 癸: '계' };
 const ZHI_KO = { 子: '자', 丑: '축', 寅: '인', 卯: '묘', 辰: '진', 巳: '사', 午: '오', 未: '미', 申: '신', 酉: '유', 戌: '술', 亥: '해' };
@@ -230,6 +249,8 @@ function birthFields(child) {
       <label class="field-label">출생 시각
         <input id="fTime" type="time" value="12:00" class="input" /></label>
     </div>
+    <label class="field-label" style="margin-top:12px">출생 도시 <span style="font-weight:400;color:var(--ink-soft);font-size:12px">(진태양시 보정)</span>
+      <select id="fCity" class="input">${cityOptions()}</select></label>
     <div class="check-row">
       <label><input type="checkbox" id="fTimeUnknown" /> 시간 모름</label>
       <label>성별 <select id="fGender"><option value="M">남</option><option value="F">여</option></select></label>
@@ -252,7 +273,7 @@ function collapseForm(s) {
   const cal = bi.cal === 'lunar' ? '음력' : '양력';
   $('profileMini').innerHTML = `<div class="profile-mini">
     <div class="who"><div class="name">내 사주</div>
-      <div class="birth">${(bi.bd || '').replaceAll('-', '.')} (${cal}) · ${s.timeUnknown ? '시간 모름' : bi.tm} · ${g}</div></div>
+      <div class="birth">${(bi.bd || '').replaceAll('-', '.')} (${cal}) · ${s.timeUnknown ? '시간 모름' : bi.tm} · ${g}${bi.city ? ' · ' + bi.city : ''}</div></div>
     <span class="pill-btn" onclick="expandForm()">변경</span></div>`;
 }
 function expandForm() {
@@ -263,9 +284,11 @@ function expandForm() {
 function getSaju() {
   const bd = $('fBirth').value, tm = $('fTime').value || '12:00';
   if (!bd) { alert('생년월일을 입력해주세요'); return null; }
-  window._birthInput = { bd, tm, cal: $('fCal').value };
+  const cityEl = $('fCity'), city = cityEl ? cityEl.value : '서울';
+  const lon = (city in CITY) ? CITY[city] : 126.98;
+  window._birthInput = { bd, tm, cal: $('fCal').value, city };
   const [y, mo, d] = bd.split('-').map(Number), [h, mi] = tm.split(':').map(Number);
-  return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar' });
+  return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar', lon: lon == null ? 135 : lon, applyLocalTime: lon != null });
 }
 function callAI(prompt, image) {
   fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image ? { prompt: prompt + aiLang(), image } : { prompt: prompt + aiLang() }) })
