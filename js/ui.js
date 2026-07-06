@@ -161,7 +161,7 @@ let homeTab = 0;
 const TAB_GROUPS = [['saju', 'couple', 'child', 'teen', 'daily', 'newyear'], [], ['moving', 'dream', 'face', 'name']];
 const CARD_IDS = new Set(['saju', 'couple', 'child', 'teen', 'daily', 'newyear']);
 function setHomeTab(i) { homeTab = i; renderHome(); }
-const HOME_CARDS = ['saju', 'couple', 'child', 'teen', 'daily', 'newyear'];
+const HOME_CARDS = ['saju', 'couple', 'child'];
 function renderHome() {
   const tiles = HOME_CARDS.map((id) => {
     const f = featById(id), done = DONE.has(id);
