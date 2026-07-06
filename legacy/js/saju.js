@@ -54,7 +54,7 @@ function cheonganRel(gans) {
   const hap = [], chung = [];
   for (let i = 0; i < gans.length; i++) for (let j = i + 1; j < gans.length; j++) {
     const a = gans[i], b = gans[j];
-    if (GAN_HAP[a] && GAN_HAP[a][0] === b) hap.push(`${a}${b}합(化${GAN_HAP[a][1]}, ${_PN[i]}·${_PN[j]})`);
+    if (GAN_HAP[a] && GAN_HAP[a][0] === b) hap.push(`${a}${b}합(合, 化${GAN_HAP[a][1]}는 월령 조건부, ${_PN[i]}·${_PN[j]})`);
     if (GAN_CHUNG[a] === b) chung.push(`${a}${b}충(${_PN[i]}·${_PN[j]})`);
   }
   return { hap, chung };
@@ -107,6 +107,21 @@ function sinsalList(dayGan, zhis, pillarGZ, yearZhi) {
   if (MUNCHANG[dayGan] && has(MUNCHANG[dayGan])) r.push('문창귀인('+MUNCHANG[dayGan]+')');
   pillarGZ.forEach((gz, i) => { if (GWAEGANG.includes(gz)) r.push('괴강('+_PN[i]+'주)'); if (BAEKHO.includes(gz)) r.push('백호('+_PN[i]+'주)'); });
   return [...new Set(r)];
+}
+
+// 조후(調候) — 월지 계절 한난 + 조후용신(火/水) 힌트. 억부용신과 별개.
+const SEASON = { 寅:'초봄', 卯:'봄', 辰:'늦봄', 巳:'초여름', 午:'여름', 未:'늦여름', 申:'초가을', 酉:'가을', 戌:'늦가을', 亥:'초겨울', 子:'겨울', 丑:'늦겨울' };
+function computeJohu(dayGan, monthZhi, allZhis) {
+  const season = SEASON[monthZhi] || '';
+  const cold = ['亥', '子', '丑', '寅'].includes(monthZhi); // 한랭
+  const hot = ['巳', '午', '未', '申'].includes(monthZhi);  // 염열
+  const hiddenFire = allZhis.some((z) => (ZHI_HIDDEN_FULL[z] || []).some((g) => GAN_WX[g] === '화'));
+  const hiddenWater = allZhis.some((z) => (ZHI_HIDDEN_FULL[z] || []).some((g) => GAN_WX[g] === '수'));
+  let need = null, note = '';
+  if (cold) { need = '화'; note = `${season} 한랭 — 온기(火)가 조후용신. ` + (hiddenFire ? '지장간에 火 있어 온기 공급(다만 火가 관살·습토를 데우면 일간 자윤 손실 주의).' : '火 미약하면 냉습으로 정체.'); }
+  else if (hot) { need = '수'; note = `${season} 염열 — 자윤(水)이 조후용신. ` + (hiddenWater ? '지장간 水로 열기 완화.' : '水 부족하면 조열·건조.'); }
+  else { note = `${season} 온난 환절 — 조후 급하지 않음(억부 우선).`; }
+  return { season, 한난: cold ? '寒' : hot ? '熱' : '平', need, hiddenFire, hiddenWater, note };
 }
 
 // 십신(十神): 일간 기준 대상 천간의 관계
@@ -283,12 +298,13 @@ function computeSaju(opt) {
   const ganRel = cheonganRel(_gans);
   const jiRel = jijiRel(_zhis);
   const sinsal = sinsalList(dayGan, _zhis, _gz, pillars.year[1]);
+  const johu = computeJohu(dayGan, pillars.month[1], _zhis);
 
   if (timeUnknown) pillars.time = null; // 시주 미상 표기
 
   return {
     sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
-    detail, tti, timeUnknown, ganRel, jiRel, sinsal,
+    detail, tti, timeUnknown, ganRel, jiRel, sinsal, johu,
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
     offsetMin,
@@ -296,4 +312,174 @@ function computeSaju(opt) {
   };
 }
 
-window.Saju = { computeSaju, sipsin, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };
+/* =========================================================================
+ * 세운(신년운세) · 일진(오늘의 운세) · 삼재 · 태세충
+ * ========================================================================= */
+// 삼재(三災) — 띠(연지) 삼합국별 삼재 3년 지지. 들→눌→날 순.
+const SAMJAE_TRIPLE = {
+  申:['寅','卯','辰'], 子:['寅','卯','辰'], 辰:['寅','卯','辰'],
+  寅:['申','酉','戌'], 午:['申','酉','戌'], 戌:['申','酉','戌'],
+  巳:['亥','子','丑'], 酉:['亥','子','丑'], 丑:['亥','子','丑'],
+  亥:['巳','午','未'], 卯:['巳','午','未'], 未:['巳','午','未'],
+};
+const SAMJAE_PHASE = ['들삼재', '눌삼재', '날삼재'];
+function isChung6(a, b) { return CHUNG6.some((c) => (c[0] === a && c[1] === b) || (c[1] === a && c[0] === b)); }
+
+// 특정 연도 세운(歲運) — 그 해 간지 + 일간 대비 십신·오행 + 태세충·삼재·연신살·용신부합
+function sewoonForYear(saju, year) {
+  const gz = Solar.fromYmd(year, 6, 1).getLunar().getYearInGanZhi(); // 6/1 = 입춘 이후, 그 해 간지
+  const gan = gz[0], zhi = gz[1];
+  const yearZhi = saju.pillars.year[1], dayZhi = saju.pillars.day[1];
+  const tri = SAMJAE_TRIPLE[yearZhi] || [];
+  const sjIdx = tri.indexOf(zhi);
+  const yong = saju.yongsin || [];
+  return {
+    year, ganzhi: gz, gan, zhi,
+    sipsin: sipsin(saju.dayGan, gan),
+    wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
+    chungIl: isChung6(zhi, dayZhi),      // 태세충 = 세운지가 일지(본인)를 충
+    chungYear: isChung6(zhi, yearZhi),   // 세운지가 연지를 충
+    ganHap: (GAN_HAP[saju.dayGan] && GAN_HAP[saju.dayGan][0] === gan) ? GAN_HAP[saju.dayGan][1] : null,
+    ganChung: GAN_CHUNG[saju.dayGan] === gan,
+    samjae: sjIdx >= 0 ? SAMJAE_PHASE[sjIdx] : null,
+    dohwaYear: DOHWA[yearZhi] === zhi || DOHWA[dayZhi] === zhi,
+    yeokmaYear: YEOKMA[yearZhi] === zhi || YEOKMA[dayZhi] === zhi,
+    hwagaeYear: HWAGAE[yearZhi] === zhi || HWAGAE[dayZhi] === zhi,
+    isYongsin: yong.includes(GAN_WX[gan]) || yong.includes(ZHI_WX[zhi]),
+  };
+}
+
+// 특정 날짜 일진(日辰) — 그날 간지 + 일간 대비 십신·오행 + 일지충/천간합
+function iljinForDate(saju, date) {
+  const l = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate()).getLunar();
+  const gz = l.getDayInGanZhi();
+  const gan = gz[0], zhi = gz[1], dayZhi = saju.pillars.day[1];
+  const yong = saju.yongsin || [];
+  return {
+    date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+    ganzhi: gz, gan, zhi,
+    sipsin: sipsin(saju.dayGan, gan),
+    zhiSipsin: sipsin(saju.dayGan, ZHI_HIDDEN[zhi]),
+    wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
+    chungIl: isChung6(zhi, dayZhi),
+    hapIl: (GAN_HAP[saju.dayGan] && GAN_HAP[saju.dayGan][0] === gan) ? GAN_HAP[saju.dayGan][1] : null,
+    dohwa: DOHWA[dayZhi] === zhi,
+    yeokma: YEOKMA[dayZhi] === zhi,
+    isYongsin: yong.includes(GAN_WX[gan]) || yong.includes(ZHI_WX[zhi]),
+  };
+}
+
+/* =========================================================================
+ * 부부 궁합(宮合)
+ * ========================================================================= */
+const WONJIN = [['子', '未'], ['丑', '午'], ['寅', '酉'], ['卯', '申'], ['辰', '亥'], ['巳', '戌']];
+function _pairEq(list, a, b) { return list.some((c) => (c[0] === a && c[1] === b) || (c[1] === a && c[0] === b)); }
+function _zhiPairRel(a, b) {
+  if (a === b) return { t: '동일' };
+  if (YUKHAP[a + b]) return { t: '육합', wx: YUKHAP[a + b] };
+  for (const [x, y, z, wx] of SAMHAP) { const s = [x, y, z]; if (s.includes(a) && s.includes(b)) return { t: '삼합', wx }; }
+  if (_pairEq(CHUNG6, a, b)) return { t: '충' };
+  if (_pairEq(WONJIN, a, b)) return { t: '원진' };
+  if (_pairEq(HAE6, a, b)) return { t: '해' };
+  if (_pairEq(PA6, a, b)) return { t: '파' };
+  return { t: '무관' };
+}
+const _clamp = (x) => Math.max(0, Math.min(100, Math.round(x)));
+
+// 두 사람 사주로 궁합 계산 (A=본인, B=상대)
+function compatibility(A, B) {
+  const gA = A.dayGan, gB = B.dayGan, wxA = GAN_WX[gA], wxB = GAN_WX[gB];
+  const yA = A.pillars.year[1], yB = B.pillars.year[1];   // 연지 = 띠
+  const dzA = A.pillars.day[1], dzB = B.pillars.day[1];    // 일지 = 배우자궁
+  const ganHap = (GAN_HAP[gA] && GAN_HAP[gA][0] === gB) ? GAN_HAP[gA][1] : null;
+  const ganChung = GAN_CHUNG[gA] === gB;
+  let ganRel;
+  if (ganHap) ganRel = '천간합';
+  else if (ganChung) ganRel = '천간충';
+  else if (wxA === wxB) ganRel = '비화';
+  else if (SAENG[wxA] === wxB || SAENG[wxB] === wxA) ganRel = '상생';
+  else ganRel = '상극';
+  const sipAtoB = sipsin(gA, gB); // 상대(B)가 나(A)에게 무슨 십신인지
+  const sipBtoA = sipsin(gB, gA);
+  const ttiRel = _zhiPairRel(yA, yB);
+  const iljiRel = _zhiPairRel(dzA, dzB);
+  // 오행 보완: 상대가 내 용신 기운을 넉넉히 가졌나
+  const aHelpsB = (B.yongsin || []).some((o) => A.count[o] >= 2);
+  const bHelpsA = (A.yongsin || []).some((o) => B.count[o] >= 2);
+
+  const ganScore = { 천간합: 95, 상생: 82, 비화: 68, 상극: 48, 천간충: 36 }[ganRel];
+  const zsc = (r) => ({ 육합: 92, 삼합: 88, 동일: 70, 무관: 60, 파: 52, 해: 50, 충: 40, 원진: 34 }[r.t] || 60);
+  const ttiScore = zsc(ttiRel), iljiScore = zsc(iljiRel);
+  const bosanScore = 50 + (aHelpsB ? 25 : 0) + (bHelpsA ? 25 : 0);
+  const goodSip = new Set(['정재', '정관', '정인', '식신', '편재']);
+  let sipScore = 55 + (goodSip.has(sipAtoB) ? 16 : 0) + (goodSip.has(sipBtoA) ? 16 : 0)
+    - ((sipAtoB === '겁재' || sipBtoA === '겁재') ? 14 : 0) - ((sipAtoB === '편관' && sipBtoA === '편관') ? 8 : 0);
+  sipScore = _clamp(sipScore);
+  const total = _clamp(ganScore * 0.28 + iljiScore * 0.28 + ttiScore * 0.16 + bosanScore * 0.16 + sipScore * 0.12);
+  return {
+    gA, gB, wxA, wxB, ganRel, ganHap, ganChung, sipAtoB, sipBtoA, ttiRel, iljiRel,
+    aHelpsB, bHelpsA, ttiA: A.tti, ttiB: B.tti,
+    axes: { 천간궁합: ganScore, 부부궁: iljiScore, 띠궁합: ttiScore, 오행보완: bosanScore, 십신궁합: sipScore },
+    total,
+  };
+}
+
+/* =========================================================================
+ * 이사 택일 — 길방위/흉방위(삼살·대장군) + 손 없는 날
+ * ========================================================================= */
+const WX_DIR = { 목: '동쪽', 화: '남쪽', 토: '중앙', 금: '서쪽', 수: '북쪽' };
+// 그 해 지지 → 삼살방(三殺方, 피함)
+const SAMSAL_DIR = {
+  申: '남쪽', 子: '남쪽', 辰: '남쪽', 寅: '북쪽', 午: '북쪽', 戌: '북쪽',
+  巳: '동쪽', 酉: '동쪽', 丑: '동쪽', 亥: '서쪽', 卯: '서쪽', 未: '서쪽',
+};
+// 그 해 지지 → 대장군방(大將軍方, 피함) — 3년 주기
+const DAEJANGGUN_DIR = {
+  亥: '서쪽', 子: '서쪽', 丑: '서쪽', 寅: '북쪽', 卯: '북쪽', 辰: '북쪽',
+  巳: '동쪽', 午: '동쪽', 未: '동쪽', 申: '남쪽', 酉: '남쪽', 戌: '남쪽',
+};
+const _WD = ['일', '월', '화', '수', '목', '금', '토'];
+// 이사 안내 (본인 사주 + 대상 연도)
+function movingGuide(saju, year) {
+  const yz = Solar.fromYmd(year, 6, 1).getLunar().getYearInGanZhi()[1];
+  const yong = saju.yongsin || [];
+  const goodDirs = [...new Set(yong.map((o) => WX_DIR[o]).filter((d) => d && d !== '중앙'))];
+  const samsal = SAMSAL_DIR[yz], daejang = DAEJANGGUN_DIR[yz];
+  const badDirs = [{ name: samsal, reason: '삼살방(三殺方)' }];
+  if (daejang !== samsal) badDirs.push({ name: daejang, reason: '대장군방(大將軍方)' });
+  // 손 없는 날: 오늘 이후 그 해 안, 음력 일 끝자리 9·0 (9·10·19·20·29·30)
+  const sonNo = [];
+  const start = new Date(); start.setHours(0, 0, 0, 0);
+  const from = start.getFullYear() > year ? new Date(year, 0, 1) : (start.getFullYear() < year ? new Date(year, 0, 1) : start);
+  const end = new Date(year, 11, 31);
+  for (let d = new Date(from); d <= end && sonNo.length < 8; d.setDate(d.getDate() + 1)) {
+    const l = Solar.fromYmd(d.getFullYear(), d.getMonth() + 1, d.getDate()).getLunar();
+    const ld = l.getDay();
+    if ([9, 10, 19, 20, 29, 30].includes(ld)) {
+      sonNo.push({ solar: `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`, wd: _WD[d.getDay()], lunar: `음 ${l.getMonth()}.${ld}` });
+    }
+  }
+  const badNames = badDirs.map((b) => b.name);
+  const netGood = goodDirs.filter((d) => !badNames.includes(d));
+  const conflict = goodDirs.filter((d) => badNames.includes(d));
+  return { year, yearZhi: yz, goodDirs, netGood, conflict, badDirs, sonNo };
+}
+
+/* =========================================================================
+ * 오행 수치화 — 원국 오행 분포를 0~100 지수로 (레이더용)
+ * ========================================================================= */
+// 각 오행: 원국 개수(count) + 월령 가중 반영 강도 지수(idx 0~100)
+function ohaengScores(saju) {
+  const monthWx = ZHI_WX[saju.pillars.month[1]]; // 월지 오행 = 월령
+  const out = {};
+  WX_KO.forEach((o) => {
+    const c = saju.count[o] || 0;
+    // 개수 1당 22점(5개=110→상한100), 월령이면 +14 보너스
+    let idx = c * 22 + (o === monthWx ? 14 : 0);
+    idx = Math.max(0, Math.min(100, Math.round(idx)));
+    out[o] = { count: c, idx };
+  });
+  return out;
+}
+
+window.Saju = { computeSaju, sipsin, sewoonForYear, iljinForDate, compatibility, movingGuide, ohaengScores, GAN_WX, ZHI_WX, SAENG, GEUK, WX_KO, SIPSIN_GROUP, localTimeOffsetMin };
