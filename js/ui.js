@@ -129,24 +129,33 @@ const ICONS = {
 };
 function renderNav() {
   const items = [
-    ['home', 'home', t('nav_home'), "showView('home')"],
-    ['daily', 'daily', LANG === 'en' ? 'Daily' : '오늘의 운세', "openFeature('daily')"],
+    ['home', 'daily', LANG === 'en' ? 'Reading' : '운세 리딩', "showView('home')"],
+    ['deep', 'me', LANG === 'en' ? 'Deep' : '심층 운세', 'renderDeep()'],
     ['extra', 'archive', LANG === 'en' ? 'More' : '추가 기능', 'renderExtra()'],
-    ['me', 'me', t('nav_me'), "showView('me')"],
+    ['me', 'me', LANG === 'en' ? 'Me' : '내 정보', "showView('me')"],
   ];
   $('bottomNav').innerHTML = items.map(([v, ic, l, act]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="${act}"><div class="ico">${ICONS[ic] || ICONS.home}</div>${l}</div>`).join('');
   syncStaticViews();
 }
-// 추가 기능 뷰: 이사택일·꿈해몽·관상·이름점수
-function renderExtra() {
-  const tiles = ['moving', 'dream', 'face', 'name'].map((id) => {
-    const f = featById(id);
-    return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div></div>`;
-  }).join('');
-  $('view-extra').innerHTML = `<div class="section" style="padding:18px 16px 10px"><div class="section-head"><h3>${LANG === 'en' ? 'More' : '추가 기능'}</h3></div></div><div class="card-grid" style="padding-top:0">${tiles}</div>`;
-  showView('extra');
+// 공통 카드 타일 (카드이미지 있으면 이미지, 없으면 이모지)
+function cardTile(id) {
+  const f = featById(id), done = DONE.has(id);
+  const badge = LANG === 'en' ? (done ? 'Live' : 'Soon') : (done ? '구현' : '준비');
+  const badgeEl = `<span class="mini-badge ${done ? 'mb-done' : 'mb-todo'} card-badge">${badge}</span>`;
+  if (CARD_IDS.has(id) && LANG !== 'en') {
+    return `<div class="card-tile" onclick="openFeature('${id}')"><img src="img/cards/${id}.png?v=1" alt="${featTitle(f)}" />${badgeEl}</div>`;
+  }
+  return `<div class="card-tile ico-tile" onclick="openFeature('${id}')"><div class="ico-emoji">${f.emoji}</div><div class="ico-name">${featTitle(f)}</div>${badgeEl}</div>`;
 }
+function renderGridView(viewId, title, ids) {
+  $(viewId).innerHTML = `<div class="section" style="padding:18px 16px 10px"><div class="section-head"><h3>${title}</h3></div></div><div class="card-grid" style="padding-top:0">${ids.map(cardTile).join('')}</div>`;
+  showView(viewId.replace('view-', ''));
+}
+// 심층 운세: 부부궁합·자식사주·자식사춘기
+function renderDeep() { renderGridView('view-deep', LANG === 'en' ? 'Deep Reading' : '심층 운세', ['couple', 'child', 'teen']); }
+// 추가 기능: 이사택일·꿈해몽·관상·이름점수
+function renderExtra() { renderGridView('view-extra', LANG === 'en' ? 'More' : '추가 기능', ['moving', 'dream', 'face', 'name']); }
 // 정적 뷰(보관함·내정보) 텍스트도 언어 반영
 function syncStaticViews() {
   const ar = $('view-archive'); if (ar) ar.innerHTML = `<div class="section" style="padding-top:20px"><div class="section-head"><h3>${t('archive_h')}</h3></div>
@@ -161,13 +170,9 @@ let homeTab = 0;
 const TAB_GROUPS = [['saju', 'couple', 'child', 'teen', 'daily', 'newyear'], [], ['moving', 'dream', 'face', 'name']];
 const CARD_IDS = new Set(['saju', 'couple', 'child', 'teen', 'daily', 'newyear']);
 function setHomeTab(i) { homeTab = i; renderHome(); }
-const HOME_CARDS = ['saju', 'couple', 'child'];
+const HOME_CARDS = ['saju', 'daily', 'newyear'];
 function renderHome() {
-  const tiles = HOME_CARDS.map((id) => {
-    const f = featById(id), done = DONE.has(id);
-    const badge = LANG === 'en' ? (done ? 'Live' : 'Soon') : (done ? '구현' : '준비');
-    return `<div class="card-tile" onclick="openFeature('${id}')"><img src="img/cards/${id}.png?v=1" alt="${featTitle(f)}" /><span class="mini-badge ${done ? 'mb-done' : 'mb-todo'} card-badge">${badge}</span></div>`;
-  }).join('');
+  const tiles = HOME_CARDS.map(cardTile).join('');
   $('view-home').innerHTML = `
     <img class="tree-hero" src="img/home_tree.jpg?v=2" alt="운명 리더기" />
     <div class="event-box" onclick="openFeature('daily')">
