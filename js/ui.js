@@ -155,7 +155,7 @@ function renderNav() {
     ['deep', 'me', LANG === 'en' ? 'Deep' : '심층 운세', 'renderDeep()'],
     ['extra', 'archive', LANG === 'en' ? 'More' : '추가 기능', 'renderExtra()'],
     ['legacy', 'scroll', LANG === 'en' ? 'Origin' : '원래 시안', 'renderLegacy()'],
-    ['me', 'me', LANG === 'en' ? 'Me' : '내 정보', "showView('me')"],
+    ['me', 'me', LANG === 'en' ? 'Me' : '내 정보', 'renderMe()'],
   ];
   $('bottomNav').innerHTML = items.map(([v, ic, l, act]) =>
     `<div class="nav-item ${v === 'home' ? 'on' : ''}" data-v="${v}" onclick="${act}"><div class="ico">${ICONS[ic] || ICONS.home}</div>${l}</div>`).join('');
@@ -290,11 +290,18 @@ function getSaju() {
   const [y, mo, d] = bd.split('-').map(Number), [h, mi] = tm.split(':').map(Number);
   return window.Saju.computeSaju({ year: y, month: mo, day: d, hour: h, minute: mi, gender: $('fGender').value, timeUnknown: $('fTimeUnknown').checked, isLunar: $('fCal').value === 'lunar', lon: lon == null ? 135 : lon, applyLocalTime: lon != null });
 }
-function callAI(prompt, image) {
+function callAI(prompt, image, saveCtx) {
   fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(image ? { prompt: prompt + aiLang(), image } : { prompt: prompt + aiLang() }) })
     .then((r) => r.json())
-    .then((j) => { $('aiCard').innerHTML = j.text ? `<div class="md">${mdLite(j.text)}</div>` : '<div class="loading">잠시 후 다시 시도해주세요.</div>'; })
-    .catch(() => { $('aiCard').innerHTML = '<div class="loading">분석 실패 — 다시 시도해주세요.</div>'; });
+    .then((j) => {
+      const card = $('aiCard'); if (!card) return;
+      card.innerHTML = j.text ? `<div class="md">${mdLite(j.text)}</div>` : '<div class="loading">잠시 후 다시 시도해주세요.</div>';
+      if (j.text && saveCtx) {
+        window._readingBuf = Object.assign({}, saveCtx, { body: j.text });
+        if (!$('saveReadingBtn')) card.insertAdjacentHTML('afterend', `<div class="save-bar"><button class="btn ghost" id="saveReadingBtn" onclick="saveCurrentReading()">이 풀이 저장</button></div>`);
+      }
+    })
+    .catch(() => { const card = $('aiCard'); if (card) card.innerHTML = '<div class="loading">분석 실패 — 다시 시도해주세요.</div>'; });
 }
 const aiLoading = (t) => `<div class="card" id="aiCard"><div class="loading"><span class="spinner"></span> ${t || '분석 생성 중…'}</div></div>`;
 function compactSummary(s) {
@@ -311,7 +318,9 @@ function runReading(id) {
   if (id === 'saju') {
     $('sajuResult').innerHTML = `<div id="manseBox">${renderManse()}</div>
       <div class="section"><div class="section-head"><h3>${LANG === 'en' ? 'Your Saju Reading' : '나의 사주 풀이'}</h3></div></div>${aiLoading(LANG === 'en' ? 'Starting your reading…' : '리딩을 시작하겠습니다…')}`;
-    callAI(deepPrompt(saju)); return;
+    const bi = window._birthInput || {};
+    const birthText = bi.bd ? `${bi.bd.replaceAll('-', '.')} ${bi.tm || ''} (${bi.cal === 'lunar' ? '음력' : '양력'})${bi.city ? ' · ' + bi.city : ''}` : '';
+    callAI(deepPrompt(saju), null, { kind: 'saju', title: '사주팔자 풀이', sajuLine: sajuLine(saju), birth: birthText }); return;
   }
   const pr = id === 'daily' ? dailyPrompt(saju) : id === 'newyear' ? newyearPrompt(saju) : id === 'child' ? childPrompt(saju) : teenPrompt(saju);
   $('sajuResult').innerHTML = compactSummary(saju) + aiLoading();
@@ -638,6 +647,147 @@ function clientId() {
   let id = localStorage.getItem('saju_client_id');
   if (!id) { id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2); localStorage.setItem('saju_client_id', id); }
   return id;
+}
+// ── 계정(구글 로그인) · 정액권 · 저장된 사주 ──
+let _user = null, _credits = null;
+const _esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+function _fmtDate(iso) { try { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; } catch (e) { return ''; } }
+async function initAuth() {
+  const c = sb(); if (!c) return;
+  try {
+    const { data: { session } } = await c.auth.getSession();
+    _user = (session && session.user) || null;
+    c.auth.onAuthStateChange((_e, s) => {
+      _user = (s && s.user) || null; _credits = null;
+      if ($('view-me') && $('view-me').classList.contains('on')) renderMe();
+    });
+  } catch (e) {}
+}
+async function loginGoogle() {
+  const c = sb(); if (!c) { alert('로그인 모듈을 불러오지 못했어요.'); return; }
+  const redirectTo = location.origin + location.pathname;
+  const { error } = await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+  if (error) alert('로그인 실패: ' + error.message);
+}
+async function logout() {
+  const c = sb(); if (c) { try { await c.auth.signOut(); } catch (e) {} }
+  _user = null; _credits = null; renderMe();
+}
+async function fetchCredits() {
+  const c = sb(); if (!c || !_user) return null;
+  try {
+    const { data } = await c.from('user_credits').select('*').eq('user_id', _user.id).maybeSingle();
+    _credits = data || { credits: 0, plan: null, plan_expires_at: null };
+  } catch (e) { _credits = { credits: 0, plan: null, plan_expires_at: null }; }
+  return _credits;
+}
+// 정액권 플랜 (결제 연동 전까지 UI·기준용)
+const PASS_PLANS = [
+  { id: 'day', name: '1일 무제한권', price: '2,900원', desc: '24시간 모든 풀이 무제한', tag: '' },
+  { id: 'count10', name: '10회 이용권', price: '9,900원', desc: '사주·궁합·관상 등 10회', tag: '인기' },
+  { id: 'month', name: '월 정액권', price: '14,900원', desc: '한 달 무제한 + 결과 저장', tag: '추천' },
+];
+function renderMe() {
+  const me = $('view-me'); if (!me) return;
+  if (!_user) {
+    me.innerHTML = `
+      <div class="section" style="padding:20px 16px 8px"><div class="section-head"><h3>내 정보</h3></div></div>
+      <div class="card me-login">
+        <div class="me-login-emoji">🔮</div>
+        <div class="me-login-h">로그인하고 내 사주를 저장하세요</div>
+        <div class="me-login-p">구글 계정으로 로그인하면 본 사주 풀이를 보관하고, 정액권을 이용할 수 있어요.</div>
+        <button class="btn google-btn" onclick="loginGoogle()">
+          <span class="g-ico">G</span> 구글로 로그인
+        </button>
+      </div>
+      <div class="section" style="padding:6px 16px 6px"><div class="section-head"><div><div class="sec-kicker">이용권</div><h3>정액권</h3></div></div></div>
+      ${passListHtml()}`;
+    showView('me'); return;
+  }
+  const u = _user, meta = u.user_metadata || {};
+  const name = meta.full_name || meta.name || (u.email ? u.email.split('@')[0] : '회원');
+  const avatar = meta.avatar_url || meta.picture;
+  me.innerHTML = `
+    <div class="section" style="padding:20px 16px 8px"><div class="section-head"><h3>내 정보</h3></div></div>
+    <div class="card profile-card">
+      ${avatar ? `<img class="pf-avatar" src="${_esc(avatar)}" alt="" referrerpolicy="no-referrer" />` : `<div class="pf-avatar pf-ph">${_esc(name.slice(0, 1))}</div>`}
+      <div class="pf-info"><div class="pf-name">${_esc(name)}</div><div class="pf-mail">${_esc(u.email || '')}</div></div>
+      <button class="pill-btn" onclick="logout()">로그아웃</button>
+    </div>
+    <div class="card credit-card" id="meCredit"><div class="muted" style="font-size:13px">이용권 확인 중…</div></div>
+    <div class="section" style="padding:6px 16px 6px"><div class="section-head"><div><div class="sec-kicker">이용권</div><h3>정액권 구매</h3></div></div></div>
+    ${passListHtml()}
+    <div class="section" style="padding:14px 16px 6px"><div class="section-head"><div><div class="sec-kicker">보관함</div><h3>저장된 사주 풀이</h3></div></div></div>
+    <div id="meReadings" style="padding:0 16px 24px"><div class="card muted" style="text-align:center;padding:22px;font-size:13px">불러오는 중…</div></div>`;
+  showView('me');
+  fetchCredits().then(renderCreditBox);
+  loadReadings();
+}
+function passListHtml() {
+  return `<div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:10px">${PASS_PLANS.map((pl) => `
+    <div class="pass-card" onclick="buyPass('${pl.id}')">
+      <div class="pass-main"><div class="pass-name">${pl.name}${pl.tag ? `<span class="pass-tag">${pl.tag}</span>` : ''}</div>
+        <div class="pass-desc">${pl.desc}</div></div>
+      <div class="pass-buy"><div class="pass-price">${pl.price}</div><span class="pass-cta">구매</span></div>
+    </div>`).join('')}</div>`;
+}
+function renderCreditBox() {
+  const box = $('meCredit'); if (!box) return;
+  const c = _credits || { credits: 0, plan: null };
+  const active = c.plan && (!c.plan_expires_at || new Date(c.plan_expires_at) > new Date());
+  if (active) {
+    const exp = c.plan_expires_at ? ` · ${_fmtDate(c.plan_expires_at)}까지` : '';
+    box.innerHTML = `<div class="credit-row"><div><div class="credit-lbl">이용 중인 정액권</div><div class="credit-val">${_esc(c.plan)}${exp}</div></div><span class="credit-badge on">이용중</span></div>`;
+  } else {
+    box.innerHTML = `<div class="credit-row"><div><div class="credit-lbl">보유 크레딧</div><div class="credit-val">${c.credits || 0}회</div></div><span class="credit-badge">정액권 없음</span></div>`;
+  }
+}
+function buyPass(id) {
+  const pl = PASS_PLANS.find((p) => p.id === id); if (!pl) return;
+  if (!_user) { if (confirm('정액권 구매는 로그인이 필요해요. 구글로 로그인할까요?')) loginGoogle(); return; }
+  infoSheet(`${pl.name} · ${pl.price}`, `<p>결제 연동(카카오페이·신용카드)을 준비 중이에요.</p><p class="muted">오픈되면 이 화면에서 바로 ${pl.name}을 구매하고 즉시 이용할 수 있어요.</p>`);
+}
+async function loadReadings() {
+  const box = $('meReadings'); if (!box) return;
+  const c = sb(); if (!c || !_user) { box.innerHTML = ''; return; }
+  try {
+    const { data, error } = await c.from('saju_readings').select('id,kind,title,saju_line,birth,created_at').eq('user_id', _user.id).order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    if (!data || !data.length) { box.innerHTML = `<div class="card muted" style="text-align:center;padding:22px;font-size:13px">아직 저장한 풀이가 없어요.<br/>사주팔자를 보고 하단 <b>저장</b> 버튼을 눌러보세요.</div>`; return; }
+    box.innerHTML = data.map((r) => `<div class="reading-item" onclick="openReading('${r.id}')">
+      <div class="ri-txt"><div class="ri-title">${_esc(r.title || '사주 풀이')}</div><div class="ri-sub">${_esc(r.birth || r.saju_line || '')} · ${_fmtDate(r.created_at)}</div></div>
+      <span class="ri-del" onclick="event.stopPropagation();deleteReading('${r.id}')">✕</span></div>`).join('');
+  } catch (e) { box.innerHTML = `<div class="card muted" style="text-align:center;padding:20px;font-size:12.5px">저장 목록을 불러오지 못했어요.<br/>(saju_readings 테이블·로그인 필요)</div>`; }
+}
+async function openReading(id) {
+  const c = sb(); if (!c || !_user) return;
+  try {
+    const { data } = await c.from('saju_readings').select('*').eq('id', id).maybeSingle();
+    if (!data) return;
+    $('view-reading').innerHTML = detailHead(data.title || '저장된 풀이') +
+      (data.saju_line ? `<div class="card"><div style="font-size:12.5px;color:var(--ink-mid)">${_esc(data.birth || '')}</div><div style="font-size:12px;color:var(--ink-soft);margin-top:4px">${_esc(data.saju_line)}</div></div>` : '') +
+      `<div class="card md">${mdLite(data.body_md || '')}</div>`;
+    showView('reading');
+  } catch (e) { alert('불러오기 실패'); }
+}
+async function deleteReading(id) {
+  if (!confirm('이 풀이를 삭제할까요?')) return;
+  const c = sb(); if (!c || !_user) return;
+  try { await c.from('saju_readings').delete().eq('id', id).eq('user_id', _user.id); } catch (e) {}
+  loadReadings();
+}
+// 사주 결과 저장 (deepAnalysis 결과창의 '저장' 버튼)
+async function saveCurrentReading() {
+  const buf = window._readingBuf;
+  if (!buf || !buf.body) { alert('저장할 내용이 없어요.'); return; }
+  if (!_user) { if (confirm('풀이 저장은 로그인이 필요해요. 구글로 로그인할까요?')) loginGoogle(); return; }
+  const c = sb(); if (!c) return;
+  const btn = $('saveReadingBtn'); if (btn) { btn.disabled = true; btn.textContent = '저장 중…'; }
+  try {
+    const { error } = await c.from('saju_readings').insert({ user_id: _user.id, kind: buf.kind || 'saju', title: buf.title || '사주 풀이', saju_line: buf.sajuLine || '', birth: buf.birth || '', body_md: buf.body });
+    if (error) throw error;
+    if (btn) { btn.textContent = '✓ 저장됨'; }
+  } catch (e) { if (btn) { btn.disabled = false; btn.textContent = '저장'; } alert('저장 실패: ' + (e.message || '') + '\n(saju_readings 테이블이 필요해요)'); }
 }
 const OH_ORDER = ['목', '화', '토', '금', '수'];
 const OH_HANJA = { 목: '木', 화: '火', 토: '土', 금: '金', 수: '水' };
@@ -1266,6 +1416,16 @@ function openSheet(key) {
     <button class="btn" onclick="closeSheet()">확인</button>`;
   document.body.appendChild(bg); document.body.appendChild(sh);
 }
+function infoSheet(title, html) {
+  closeSheet();
+  const bg = document.createElement('div'); bg.className = 'sheet-bg'; bg.id = 'sheetBg'; bg.onclick = closeSheet;
+  const sh = document.createElement('div'); sh.className = 'sheet'; sh.id = 'sheetBox';
+  sh.innerHTML = `<div class="sheet-x" onclick="closeSheet()">✕</div>
+    <div class="sheet-title">${title}</div>
+    <div class="sheet-body">${html}</div>
+    <button class="btn" onclick="closeSheet()">확인</button>`;
+  document.body.appendChild(bg); document.body.appendChild(sh);
+}
 function closeSheet() {
   ['sheetBg', 'sheetBox'].forEach((id) => { const el = document.getElementById(id); if (el) el.remove(); });
 }
@@ -1325,5 +1485,5 @@ function showWelcome() {
 }
 function enterApp() { const w = $('welcome'); if (w) w.remove(); }
 
-document.documentElement.lang = LANG; syncLangChrome(); renderNav(); renderHome(); passwordGate();
-Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, dreamEmo, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear });
+document.documentElement.lang = LANG; syncLangChrome(); renderNav(); renderHome(); passwordGate(); initAuth();
+Object.assign(window, { showView, openFeature, runReading, onFacePhoto, runFace, runDream, dreamChip, dreamEmo, switchManseTab, switchRelTab, openSheet, closeSheet, expandForm, pwCheck, nPopSeong, nPopName, runName, runNewyear, renderMe, loginGoogle, logout, buyPass, saveCurrentReading, openReading, deleteReading });

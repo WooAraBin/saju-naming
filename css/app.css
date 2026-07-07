@@ -571,6 +571,47 @@ svg { display: block; }
 #view-legacy.on { display: flex; }
 .legacy-frame { width: 100%; height: calc(100dvh - 60px); border: 0; display: block; background: #fff; }
 
+/* ── 내 정보: 로그인 · 정액권 · 저장된 사주 ── */
+.me-login { margin: 0 16px 8px; text-align: center; padding: 26px 20px; }
+.me-login-emoji { font-size: 40px; }
+.me-login-h { font-weight: 800; font-size: 16px; margin: 8px 0 4px; color: var(--ink); }
+.me-login-p { font-size: 13px; color: var(--ink-mid); line-height: 1.6; margin-bottom: 16px; }
+.google-btn { display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #fff; color: #202124; border: 1px solid #dadce0; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.google-btn .g-ico { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border-radius: 50%; background: conic-gradient(from -45deg,#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0); color: #fff; font-weight: 900; font-size: 12px; }
+.profile-card { margin: 0 16px 10px; display: flex; align-items: center; gap: 12px; }
+.pf-avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+.pf-avatar.pf-ph { display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--ink-mid); font-weight: 800; font-size: 18px; }
+.pf-info { flex: 1; min-width: 0; }
+.pf-name { font-weight: 800; font-size: 15px; color: var(--ink); }
+.pf-mail { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.credit-card { margin: 0 16px 6px; }
+.credit-row { display: flex; align-items: center; justify-content: space-between; }
+.credit-lbl { font-size: 12px; color: var(--ink-soft); }
+.credit-val { font-weight: 800; font-size: 15px; color: var(--ink); margin-top: 2px; }
+.credit-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink-soft); }
+.credit-badge.on { background: #E7F7EC; color: #1B8A45; }
+.pass-card { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; cursor: pointer;
+  transition: transform .12s, border-color .12s; }
+.pass-card:active { transform: scale(.98); }
+.pass-name { font-weight: 800; font-size: 14.5px; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+.pass-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: #F3E3A0; color: #6b5410; }
+.pass-desc { font-size: 12px; color: var(--ink-mid); margin-top: 3px; }
+.pass-buy { text-align: right; flex: 0 0 auto; }
+.pass-price { font-weight: 800; font-size: 14px; color: var(--ink); }
+.pass-cta { font-size: 11px; font-weight: 700; color: #7C6BE7; }
+.reading-item { display: flex; align-items: center; gap: 10px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; margin-bottom: 8px; cursor: pointer; }
+.reading-item:active { transform: scale(.99); }
+.ri-txt { flex: 1; min-width: 0; }
+.ri-title { font-weight: 700; font-size: 14px; color: var(--ink); }
+.ri-sub { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ri-del { color: var(--ink-faint); font-size: 15px; padding: 2px 6px; flex: 0 0 auto; }
+.save-bar { padding: 4px 16px 20px; }
+.save-bar .btn { width: 100%; }
+
 /* ── 홈 이벤트 박스 (그림과 카드 사이) ── */
 .event-box { margin: 0 16px 12px; display: flex; align-items: center; gap: 12px;
   min-height: 60px; padding: 11px 15px; border-radius: 14px; cursor: pointer;
