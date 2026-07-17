@@ -304,7 +304,7 @@ function computeSaju(opt) {
   if (timeUnknown) pillars.time = null; // 시주 미상 표기
 
   return {
-    sip, daewoon, daewoonList, sewoon, gender: gInt ? 'M' : 'F',
+    sip, daewoon, daewoonList, sewoon, birthYear: year, gender: gInt ? 'M' : 'F',
     detail, tti, timeUnknown, ganRel, jiRel, sinsal, johu,
     pillars, dayGan, dayWx, count, total,
     isStrong, yongsin, lacking, target, reason,
@@ -340,8 +340,20 @@ function sewoonForYear(saju, year) {
   const bokeumParts = _pk.filter((k) => saju.pillars[k] && saju.pillars[k][1] === zhi).map((k) => _kn[k]);
   const bokeum = bokeumParts.length ? bokeumParts.join('·') + ' 복음(伏吟)' : null;
   const yanginBokeum = (YANGIN[saju.dayGan] === zhi) && bokeumParts.length > 0; // 양인이 세운서 겹침
+  // 해당 연도에 유효한 대운. 대운표는 출생 시 확정이라 미래 연도도 오늘 알 수 있음.
+  // (기존엔 '오늘 기준 현재 대운'을 썼는데, 그러면 미래 신년운세가 계산 시점에 따라 달라짐)
+  let dwYear = null;
+  const dl = saju.daewoonList || [];
+  if (saju.birthYear && dl.length) {
+    const ageInYear = year - saju.birthYear; // computeSaju의 ageNow와 동일 근사(연도차)
+    for (let i = 0; i < dl.length; i++) {
+      const cur = dl[i], nxt = dl[i + 1];
+      if (ageInYear >= cur.startAge && (!nxt || ageInYear < nxt.startAge)) { dwYear = cur; break; }
+    }
+    if (!dwYear) dwYear = ageInYear < dl[0].startAge ? dl[0] : dl[dl.length - 1];
+  }
   return {
-    year, ganzhi: gz, gan, zhi,
+    year, ganzhi: gz, gan, zhi, daewoon: dwYear,
     sipsin: sipsin(saju.dayGan, gan),
     wx: { gan: GAN_WX[gan], zhi: ZHI_WX[zhi] },
     bokeum, yanginBokeum,

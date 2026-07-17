@@ -427,7 +427,7 @@ SCORES 총운=?? 재물=?? 애정=?? 직업=?? 건강=??
 ## 🍀 올해의 처방 & 응원 (용신 ${(s.yongsin || []).join('·') || '-'} 기운 보강 색·방위·습관 + 행운 색·숫자 + 응원 한마디)
 - 불행·질병·사망 단정 금지, '~할 수 있어요' 톤. 데이터에 없는 것 지어내지 말 것.
 [세운] ${year}년 ${sw.ganzhi}(천간 ${sw.gan}=${sw.sipsin}, 지지 ${sw.zhi}) · 오행 ${sw.wx.gan}/${sw.wx.zhi} · 특이사항: ${sewoonFlags(sw)}
-[사주] 현재대운 ${s.daewoon ? s.daewoon.ganzhi + '(' + s.daewoon.sipsin + ')' : '-'} / ${sajuLine(s)}`;
+[사주] ${year}년 대운 ${(sw.daewoon || s.daewoon) ? (sw.daewoon || s.daewoon).ganzhi + '(' + (sw.daewoon || s.daewoon).sipsin + ')' : '-'} / ${sajuLine(s)}`;
 }
 function renderNewyearResult(text, year, yGz, ysip) {
   const m = text.match(/SCORES[^\n]*/i);
