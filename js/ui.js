@@ -151,7 +151,6 @@ function renderHome() {
     </div>`;
   }).join('');
   $('view-home').innerHTML = `
-    <div class="report-tabs"><div class="rtab on">${t('tab1')}</div><div class="rtab">${t('tab2')}</div><div class="rtab">${t('tab3')}</div></div>
     <div class="hero sasin-hero">
       <div class="txt"><span class="kicker">${t('hero_k')}</span><h2>${t('hero_h')}</h2><p>${t('hero_p')}</p></div>
     </div>
